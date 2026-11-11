@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>律协面试考核随机抽背与复盘系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #ebe4db;
+            background-image: radial-gradient(circle at 50% 50%, #f5f0e9 0%, #dcd3c6 100%);
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1f2937;
+        }
+
+        .theme-border {
+            border-color: #439b7d;
+        }
+
+        .theme-bg {
+            background-color: #439b7d;
+        }
+
+        .theme-bg-hover:hover {
+            background-color: #368066;
+        }
+
+        .theme-text {
+            color: #439b7d;
+        }
+
+        .result-bg {
+            background-color: #e5e7eb;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #439b7d;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="p-2 sm:p-6 md:p-8 flex justify-center items-start">
+    <div id="app" class="w-full max-w-4xl bg-white border-2 theme-border rounded-2xl p-4 sm:p-8 shadow-xl my-2">
+
+        <!-- 顶部导航栏 -->
+        <div class="flex flex-wrap justify-center mb-6 gap-2 sm:gap-4 border-b border-gray-200 pb-4">
+            <button @click="mode = 'question'"
+                :class="mode === 'question' ? 'theme-bg text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                class="px-4 sm:px-6 py-2.5 rounded-lg font-bold transition flex items-center gap-1.5 text-sm sm:text-base">
+                <span>📝</span> 随机抽背
+            </button>
+            <button @click="mode = 'dashboard'"
+                :class="mode === 'dashboard' ? 'theme-bg text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                class="px-4 sm:px-6 py-2.5 rounded-lg font-bold transition flex items-center gap-1.5 text-sm sm:text-base">
+                <span>📊</span> 复盘看板
+                <span class="bg-white/20 px-1.5 py-0.5 rounded text-xs font-normal">{{ stats.reviewedCount }}/110</span>
+            </button>
+            <button @click="mode = 'number'"
+                :class="mode === 'number' ? 'theme-bg text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                class="px-4 sm:px-6 py-2.5 rounded-lg font-bold transition flex items-center gap-1.5 text-sm sm:text-base">
+                <span>🔢</span> 随机数字
+            </button>
+        </div>
+
+        <!-- ==================== 模式 1：随机抽背 ==================== -->
+        <div v-if="mode === 'question'">
+            <h1 class="text-xl sm:text-2xl font-bold text-center mb-6">福建省律协面试考核抽背系统</h1>
+
+            <!-- 抽题参数设置盒 -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 space-y-4 text-base">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="flex items-center sm:block">
+                        <label class="w-28 sm:w-auto block text-gray-700 font-medium mb-1">抽取数目：</label>
+                        <input v-model.number="qCount" type="number" min="1" max="110"
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 w-full focus:outline-none focus:border-[#439b7d]">
+                    </div>
+                    <div class="flex items-center sm:block">
+                        <label class="w-28 sm:w-auto block text-gray-700 font-medium mb-1">起始题号(1-110)：</label>
+                        <input v-model.number="qMin" type="number" min="1" max="110"
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 w-full focus:outline-none focus:border-[#439b7d]">
+                    </div>
+                    <div class="flex items-center sm:block">
+                        <label class="w-28 sm:w-auto block text-gray-700 font-medium mb-1">结束题号(1-110)：</label>
+                        <input v-model.number="qMax" type="number" min="1" max="110"
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 w-full focus:outline-none focus:border-[#439b7d]">
+                    </div>
+                </div>
+
+                <!-- 快捷范围选择按钮 -->
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                    <span class="text-xs text-gray-500">快捷范围：</span>
+                    <button @click="setRange(1, 110)"
+                        class="text-xs bg-white border border-gray-300 px-2.5 py-1 rounded hover:border-[#439b7d] hover:text-[#439b7d] transition">全部(1-110)</button>
+                    <button @click="setRange(1, 20)"
+                        class="text-xs bg-white border border-gray-300 px-2.5 py-1 rounded hover:border-[#439b7d] hover:text-[#439b7d] transition">一、政治素质(1-20)</button>
+                    <button @click="setRange(21, 70)"
+                        class="text-xs bg-white border border-gray-300 px-2.5 py-1 rounded hover:border-[#439b7d] hover:text-[#439b7d] transition">二、道德品行(21-70)</button>
+                    <button @click="setRange(71, 90)"
+                        class="text-xs bg-white border border-gray-300 px-2.5 py-1 rounded hover:border-[#439b7d] hover:text-[#439b7d] transition">三、专业知识(71-90)</button>
+                    <button @click="setRange(91, 110)"
+                        class="text-xs bg-white border border-gray-300 px-2.5 py-1 rounded hover:border-[#439b7d] hover:text-[#439b7d] transition">四、律师实务(91-110)</button>
+                </div>
+
+                <!-- 靶向抽题与开关设置 -->
+                <div class="pt-3 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="flex items-center gap-2">
+                        <label class="text-gray-700 font-medium text-sm whitespace-nowrap">抽题偏好：</label>
+                        <select v-model="qFilterMode"
+                            class="border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white w-full focus:outline-none focus:border-[#439b7d]">
+                            <option value="all">🎲 范围内全部题目</option>
+                            <option value="unreviewed">⚪ 仅抽【未背过】的盲区题</option>
+                            <option value="weak">🎯 仅抽【🔴不好 / 🟡中等】的薄弱题</option>
+                            <option value="poor">🔥 仅抽【🔴不好】的高危错题</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col justify-center gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-700 text-sm">
+                            <input v-model="qExcludeHistory" type="checkbox" class="w-4 h-4 accent-[#439b7d]">
+                            <span>本轮不抽已出过的题 <span class="text-xs text-gray-400">(已排除 {{ qSessionHistory.size }}
+                                    题)</span></span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-700 text-sm">
+                            <input v-model="showQuestionIndex" type="checkbox" class="w-4 h-4 accent-[#439b7d]">
+                            <span>显示原题库章节与题号</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="mt-6 flex flex-wrap items-center gap-3">
+                <button @click="generateQuestions"
+                    class="theme-bg theme-bg-hover text-white font-bold px-6 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                    <span>🎲 生成抽背题目</span>
+                </button>
+                <button v-if="qResults.length > 0" @click="toggleAllAnswers"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                    {{ allAnswersShown ? '🙈 全部收起答案' : '👀 全部展开答案' }}
+                </button>
+                <button v-if="qExcludeHistory && qSessionHistory.size > 0" @click="resetSessionHistory"
+                    class="ml-auto border border-gray-300 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-xs sm:text-sm">
+                    🔄 重置本轮已抽池 ({{ qSessionHistory.size }})
+                </button>
+            </div>
+
+            <!-- 抽取结果列表（交互式背诵卡片） -->
+            <div class="mt-6 space-y-5">
+                <div v-if="qResults.length === 0" class="result-bg rounded-xl p-8 text-center text-gray-500">
+                    点击上方「生成抽背题目」开始本次背诵练习
+                </div>
+
+                <div v-for="(item, idx) in qResults" :key="item.sessionKey"
+                    class="border-2 rounded-xl p-4 sm:p-6 transition bg-white shadow-sm"
+                    :class="getCardBorderClass(item.id)">
+                    <!-- 卡片头部：序号、历史掌握状态标签 -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-[#439b7d] text-white text-xs font-bold px-2.5 py-1 rounded">第 {{ idx + 1 }}
+                                题</span>
+                            <span v-if="showQuestionIndex"
+                                class="text-sm font-bold theme-text bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                                {{ getOriginalIndex(item.id) }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span :class="getStatusBadgeClass(getQuestionRecord(item.id).latestRating)"
+                                class="px-2.5 py-1 rounded-full font-medium">
+                                {{ getStatusText(getQuestionRecord(item.id).latestRating) }}
+                            </span>
+                            <span class="text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                累计已背 {{ getQuestionRecord(item.id).logs.length }} 次
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 题干文本 -->
+                    <div class="text-lg sm:text-xl font-bold text-gray-800 leading-relaxed mb-4">
+                        {{ item.text }}
+                    </div>
+
+                    <!-- 展开答案与过往笔记按钮栏 -->
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <button @click="item.showAnswer = !item.showAnswer"
+                            class="text-xs sm:text-sm px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1"
+                            :class="item.showAnswer ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">
+                            <span>{{ item.showAnswer ? '🙈 隐藏标准答案' : '👀 查看标准答案' }}</span>
+                        </button>
+                        <button v-if="getQuestionRecord(item.id).logs.length > 0"
+                            @click="item.showHistory = !item.showHistory"
+                            class="text-xs sm:text-sm px-3 py-1.5 rounded-lg font-medium bg-amber-50 text-amber-800 hover:bg-amber-100 transition flex items-center gap-1">
+                            <span>📜 {{ item.showHistory ? '收起过往记录' : '查看过往背诵记录 (' +
+                                getQuestionRecord(item.id).logs.length + ')' }}</span>
+                        </button>
+                    </div>
+
+                    <!-- 折叠区：官方标准答案 -->
+                    <div v-if="item.showAnswer"
+                        class="mb-4 bg-emerald-50/70 border border-emerald-200 rounded-lg p-3.5 sm:p-4 text-gray-800 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                        <div class="font-bold text-emerald-900 mb-1 text-xs uppercase tracking-wider">📖 官方参考答案：</div>
+                        {{ item.answer }}
+                    </div>
+
+                    <!-- 折叠区：过往背诵历史记录 -->
+                    <div v-if="item.showHistory && getQuestionRecord(item.id).logs.length > 0"
+                        class="mb-4 bg-amber-50/60 border border-amber-200 rounded-lg p-3.5 text-xs sm:text-sm space-y-2">
+                        <div class="font-bold text-amber-900 mb-1">📜 历史背诵轨迹（按时间倒序）：</div>
+                        <div v-for="(log, lIdx) in getQuestionRecord(item.id).logs" :key="log.logId"
+                            class="border-b border-amber-200/60 pb-2 last:border-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <div>
+                                <span :class="getStatusBadgeClass(log.rating)"
+                                    class="px-1.5 py-0.5 rounded text-xs font-bold mr-2">{{ getRatingLabel(log.rating)
+                                    }}</span>
+                                <span class="text-gray-700">{{ log.note || '（未填写具体批注）' }}</span>
+                            </div>
+                            <span class="text-gray-400 text-xs whitespace-nowrap">{{ log.time }}</span>
+                        </div>
+                    </div>
+
+                    <!-- 本次背诵自评与批注录入区 -->
+                    <div class="bg-gray-50 rounded-lg p-3.5 border border-gray-200 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs sm:text-sm font-bold text-gray-700">本次背诵自评：</span>
+                            <div class="flex items-center gap-2">
+                                <button @click="rateQuestion(item, 'poor')"
+                                    :class="item.currentRating === 'poor' ? 'bg-red-600 text-white ring-2 ring-red-300 shadow' : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'"
+                                    class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition">
+                                    🔴 不好
+                                </button>
+                                <button @click="rateQuestion(item, 'medium')"
+                                    :class="item.currentRating === 'medium' ? 'bg-amber-500 text-white ring-2 ring-amber-300 shadow' : 'bg-white text-amber-600 border border-amber-200 hover:bg-amber-50'"
+                                    class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition">
+                                    🟡 中等
+                                </button>
+                                <button @click="rateQuestion(item, 'good')"
+                                    :class="item.currentRating === 'good' ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 shadow' : 'bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50'"
+                                    class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition">
+                                    🟢 良好
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input v-model="item.currentNote" @blur="saveNoteOnBlur(item)"
+                                @keyup.enter="saveEvaluation(item, true)" type="text"
+                                placeholder="记录本次卡壳点、漏背的得分项（选择评级后自动保存，也可随时修改）..."
+                                class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full bg-white focus:outline-none focus:border-[#439b7d]">
+                            <button @click="saveEvaluation(item, true)"
+                                class="theme-bg theme-bg-hover text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition">
+                                💾 保存评价
+                            </button>
+                        </div>
+                        <div v-if="item.savedTip" class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                            ✓ 已记录到本题背诵档案（{{ item.savedTime }}）
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 一键复制当前抽出的纯题目 -->
+            <div v-if="qResults.length > 0" class="flex items-center gap-4 mt-6 pt-4 border-t border-gray-200">
+                <button @click="copyText"
+                    class="theme-bg theme-bg-hover text-white px-5 py-2 rounded-lg shadow transition text-sm font-bold">
+                    📋 复制当前抽取的题目文本
+                </button>
+                <span class="text-gray-500 text-xs sm:text-sm">支持一键拷贝发到微信或备忘录自测</span>
+            </div>
+        </div>
+
+        <!-- ==================== 模式 2：复盘看板 ==================== -->
+        <div v-else-if="mode === 'dashboard'" class="space-y-6">
+            <h1 class="text-xl sm:text-2xl font-bold text-center">背诵复盘与薄弱点筛查看板</h1>
+
+            <!-- 顶部统计概览卡片 -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-center">
+                    <div class="text-xs text-gray-500 mb-1">题库总覆盖</div>
+                    <div class="text-xl sm:text-2xl font-bold text-gray-800">{{ stats.reviewedCount }} <span
+                            class="text-xs font-normal text-gray-400">/ 110</span></div>
+                </div>
+                <div @click="dashFilterRating = 'poor'"
+                    class="bg-red-50 border border-red-200 rounded-xl p-3.5 text-center cursor-pointer hover:shadow transition">
+                    <div class="text-xs text-red-600 mb-1">🔴 掌握不好</div>
+                    <div class="text-xl sm:text-2xl font-bold text-red-700">{{ stats.poorCount }} <span
+                            class="text-xs font-normal">题</span></div>
+                </div>
+                <div @click="dashFilterRating = 'medium'"
+                    class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-center cursor-pointer hover:shadow transition">
+                    <div class="text-xs text-amber-600 mb-1">🟡 掌握中等</div>
+                    <div class="text-xl sm:text-2xl font-bold text-amber-700">{{ stats.mediumCount }} <span
+                            class="text-xs font-normal">题</span></div>
+                </div>
+                <div @click="dashFilterRating = 'good'"
+                    class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-center cursor-pointer hover:shadow transition">
+                    <div class="text-xs text-emerald-600 mb-1">🟢 掌握良好</div>
+                    <div class="text-xl sm:text-2xl font-bold text-emerald-700">{{ stats.goodCount }} <span
+                            class="text-xs font-normal">题</span></div>
+                </div>
+                <div @click="dashFilterRating = 'unreviewed'"
+                    class="col-span-2 sm:col-span-1 bg-gray-100 border border-gray-300 rounded-xl p-3.5 text-center cursor-pointer hover:shadow transition">
+                    <div class="text-xs text-gray-600 mb-1">⚪ 尚未背诵</div>
+                    <div class="text-xl sm:text-2xl font-bold text-gray-700">{{ stats.unreviewedCount }} <span
+                            class="text-xs font-normal">题</span></div>
+                </div>
+            </div>
+
+            <!-- 可视化进度条 -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between text-xs text-gray-600">
+                    <span>整体消灭盲区进度：{{ Math.round((stats.reviewedCount / 110) * 100) }}%</span>
+                    <span>累计总背诵人次：{{ stats.totalLogs }} 次</span>
+                </div>
+                <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
+                    <div :style="{ width: (stats.goodCount / 110 * 100) + '%' }"
+                        class="bg-emerald-500 h-full transition-all" title="良好"></div>
+                    <div :style="{ width: (stats.mediumCount / 110 * 100) + '%' }"
+                        class="bg-amber-400 h-full transition-all" title="中等"></div>
+                    <div :style="{ width: (stats.poorCount / 110 * 100) + '%' }"
+                        class="bg-red-500 h-full transition-all" title="不好"></div>
+                </div>
+            </div>
+
+            <!-- 多维筛选器 -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">按当前评级筛选：</label>
+                        <select v-model="dashFilterRating"
+                            class="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white">
+                            <option value="all">全部状态 (110)</option>
+                            <option value="weak">🎯 需重点攻克 (🔴不好 + 🟡中等)</option>
+                            <option value="poor">🔴 仅看【不好】</option>
+                            <option value="medium">🟡 仅看【中等】</option>
+                            <option value="good">🟢 仅看【良好】</option>
+                            <option value="reviewed">✅ 全部已背过</option>
+                            <option value="unreviewed">⚪ 仅看【未背过】</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">按所属章节筛选：</label>
+                        <select v-model="dashFilterCategory"
+                            class="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white">
+                            <option value="all">全部章节</option>
+                            <option value="1">一、政治素质 (1-20)</option>
+                            <option value="2">二、道德品行 (21-70)</option>
+                            <option value="3">三、专业知识 (71-90)</option>
+                            <option value="4">四、律师实务 (91-110)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">排序方式：</label>
+                        <select v-model="dashSortBy"
+                            class="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white">
+                            <option value="id">默认题号顺序</option>
+                            <option value="poorCount">🔥 历史【不好】次数最多优先</option>
+                            <option value="reviewCount">📈 累计背诵次数最多优先</option>
+                            <option value="recent">🕒 最近背诵时间优先</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-gray-200">
+                    <input v-model="dashSearchKeyword" type="text" placeholder="🔍 搜索题目、答案或你的背诵笔记关键词..."
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-80 bg-white focus:outline-none focus:border-[#439b7d]">
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <span class="text-xs text-gray-500">当前筛出 {{ filteredDashboardQuestions.length }} 题</span>
+                        <button v-if="filteredDashboardQuestions.length > 0" @click="practiceFilteredQuestions"
+                            class="theme-bg theme-bg-hover text-white text-xs sm:text-sm font-bold px-3.5 py-1.5 rounded-lg shadow transition">
+                            🎯 抽背当前筛出的题目
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选出的题目列表 -->
+            <div class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                <div v-if="filteredDashboardQuestions.length === 0"
+                    class="text-center py-8 text-gray-400 bg-gray-50 rounded-xl">
+                    没有符合当前筛选条件的题目
+                </div>
+
+                <div v-for="q in filteredDashboardQuestions" :key="q.id"
+                    class="border border-gray-200 rounded-xl p-4 bg-white hover:border-[#439b7d] transition">
+                    <div class="flex flex-wrap items-start justify-between gap-2 cursor-pointer"
+                        @click="toggleDashExpand(q.id)">
+                        <div class="flex-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                                <span
+                                    class="text-xs font-bold theme-text bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                    {{ getOriginalIndex(q.id) }}
+                                </span>
+                                <span :class="getStatusBadgeClass(q.record.latestRating)"
+                                    class="px-2 py-0.5 rounded-full text-xs font-bold">
+                                    {{ getStatusText(q.record.latestRating) }}
+                                </span>
+                                <span v-if="q.record.logs.length > 0" class="text-xs text-gray-500">
+                                    背过 {{ q.record.logs.length }} 次
+                                    <span v-if="q.poorCount > 0" class="text-red-600 font-medium">(🔴 {{ q.poorCount
+                                        }}次)</span>
+                                </span>
+                            </div>
+                            <div class="font-bold text-gray-800 text-base leading-snug">{{ q.text }}</div>
+                            <!-- 最新一条批注预览 -->
+                            <div v-if="q.record.logs.length > 0 && q.record.logs[0].note"
+                                class="mt-2 text-xs text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200 inline-block">
+                                💬 最新笔记 ({{ q.record.logs[0].time }})：{{ q.record.logs[0].note }}
+                            </div>
+                        </div>
+                        <button class="text-xs text-gray-400 hover:text-gray-700 px-2 py-1">
+                            {{ dashExpandedIds.has(q.id) ? '▲ 收起详情' : '▼ 详情/答案' }}
+                        </button>
+                    </div>
+
+                    <!-- 展开详情：标准答案 + 完整历史时间轴 + 看板直接补录 -->
+                    <div v-if="dashExpandedIds.has(q.id)" class="mt-4 pt-3 border-t border-gray-100 space-y-4 text-sm">
+                        <div
+                            class="bg-emerald-50/70 border border-emerald-200 rounded-lg p-3 text-gray-800 whitespace-pre-line leading-relaxed">
+                            <div class="font-bold text-emerald-900 mb-1 text-xs">📖 官方参考答案：</div>
+                            {{ q.answer }}
+                        </div>
+
+                        <!-- 历史记录列表 -->
+                        <div>
+                            <div class="font-bold text-gray-700 mb-2 text-xs">📜 历次背诵评价记录 ({{ q.record.logs.length }})：
+                            </div>
+                            <div v-if="q.record.logs.length === 0" class="text-xs text-gray-400 italic">暂无背诵记录</div>
+                            <div v-else class="space-y-2">
+                                <div v-for="(log, idx) in q.record.logs" :key="log.logId"
+                                    class="flex items-center justify-between bg-gray-50 px-3 py-2 rounded border border-gray-200 text-xs">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span :class="getStatusBadgeClass(log.rating)"
+                                            class="px-1.5 py-0.5 rounded font-bold">{{ getRatingLabel(log.rating)
+                                            }}</span>
+                                        <span class="text-gray-700">{{ log.note || '（无文字批注）' }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-gray-400 whitespace-nowrap">{{ log.time }}</span>
+                                        <button @click.stop="deleteLog(q.id, idx)"
+                                            class="text-red-400 hover:text-red-600" title="删除此条记录">✕</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据备份与恢复区 -->
+            <div class="mt-8 pt-6 border-t border-gray-200 bg-gray-50 rounded-xl p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm text-gray-800">📦 本地数据持久化与跨设备同步</h3>
+                        <p class="text-xs text-gray-500">仅导出已背诵的题目数据，体积精简。支持一键复制或在下方文本框手动复制。</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button @click="exportData"
+                            class="bg-white border border-gray-300 hover:border-[#439b7d] text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                            📤 导出/复制备份码
+                        </button>
+                        <button @click="showImportBox = !showImportBox; showExportBox = false"
+                            class="bg-white border border-gray-300 hover:border-[#439b7d] text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                            📥 导入备份码
+                        </button>
+                        <button @click="clearAllRecords"
+                            class="bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                            🗑️ 清空所有记录
+                        </button>
+                    </div>
+                </div>
+                <!-- 页面内导出框（防止手机端弹窗截断） -->
+                <div v-if="showExportBox" class="space-y-2 pt-2">
+                    <div class="text-xs text-emerald-700 font-medium">👇 若未自动复制，请长按全选下方文本框内容进行复制：</div>
+                    <textarea ref="exportTextarea" v-model="exportJsonStr" readonly rows="3"
+                        @click="$event.target.select()"
+                        class="w-full border border-emerald-400 rounded-lg p-2 text-xs font-mono bg-white"></textarea>
+                </div>
+                <!-- 页面内导入框 -->
+                <div v-if="showImportBox" class="space-y-2 pt-2">
+                    <textarea v-model="importJsonStr" rows="3" placeholder="在此粘贴复制的备份码 JSON 字符串..."
+                        class="w-full border border-gray-300 rounded-lg p-2 text-xs font-mono bg-white"></textarea>
+                    <button @click="importData"
+                        class="theme-bg text-white px-4 py-1.5 rounded-lg text-xs font-bold">确认导入并合并/覆盖</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 模式 3：随机数字（保留原图功能） ==================== -->
+        <div v-else-if="mode === 'number'" class="space-y-6 text-lg">
+            <h1 class="text-2xl font-bold text-center mb-6">随机数字生成器</h1>
+            <p>确定产生随机数的数目，最小值和最大值：</p>
+            <div class="flex items-center gap-4">
+                <label class="w-24">数目：</label>
+                <input v-model.number="numCount" type="number" class="border border-gray-400 rounded px-2 py-1 w-48">
+            </div>
+            <div class="flex items-center gap-4">
+                <label class="w-24">最小值：</label>
+                <input v-model.number="numMin" type="number" class="border border-gray-400 rounded px-2 py-1 w-48">
+            </div>
+            <div class="flex items-center gap-4">
+                <label class="w-24">最大值：</label>
+                <input v-model.number="numMax" type="number" class="border border-gray-400 rounded px-2 py-1 w-48">
+            </div>
+
+            <div class="pt-4">
+                <p class="mb-4">选择是否为唯一随机数：</p>
+                <div class="flex items-center gap-4 mb-4">
+                    <label class="w-24">选择</label>
+                    <select v-model="numUnique" class="border border-gray-400 rounded px-2 py-1 w-32 bg-white">
+                        <option value="唯一">唯一</option>
+                        <option value="允许重复">允许重复</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-4">
+                    <label class="w-24">全局历史</label>
+                    <label class="flex items-center gap-2 cursor-pointer text-gray-700 text-base">
+                        <input v-model="numExcludeHistory" type="checkbox" class="w-4 h-4 accent-[#439b7d]">
+                        剔除已抽取的历史记录 (直到点击重置)
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-8 space-y-4">
+                <div class="flex items-center gap-4">
+                    <button @click="generateNumbers"
+                        class="theme-bg text-white px-6 py-2 rounded shadow hover:bg-emerald-700 transition">
+                        生成
+                    </button>
+                    <span class="text-gray-800">得到你想要的随机数！</span>
+                    <button v-if="numExcludeHistory" @click="resetNumHistory"
+                        class="ml-auto border border-gray-400 text-gray-600 px-4 py-1 rounded hover:bg-gray-100 transition text-sm">
+                        🔄 重置历史
+                    </button>
+                </div>
+
+                <div class="result-bg w-full min-h-[4rem] rounded p-4 flex flex-wrap gap-4 items-center">
+                    <span v-for="(res, idx) in numResults" :key="idx"
+                        class="theme-text text-4xl font-bold tracking-wider">
+                        {{ res }}
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4 mt-6">
+                    <button @click="copyText"
+                        class="theme-bg text-white px-6 py-2 rounded shadow hover:bg-emerald-700 transition">
+                        复制
+                    </button>
+                    <span class="text-gray-800">一键拷贝生成的结果</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部说明 -->
+        <div class="mt-10 pt-5 border-t border-gray-200 text-gray-500 leading-relaxed text-xs">
+            说明：题库严格依据《福建省律师协会申请律师执业人员面试考核题库（2025年版）》录入（共110道必背客观问答，已排除综合素质开放题）。背诵评级与心得自动持久化保存在浏览器本地存储（localStorage）中，刷新或关闭页面均不会丢失。
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        const STORAGE_KEY = 'fj_lawyer_interview_records_v1';
+
+        createApp({
+            setup() {
+                const mode = ref('question'); // 'question' | 'dashboard' | 'number'
+
+                // ==================== 随机数状态 ====================
+                const numCount = ref(3);
+                const numMin = ref(1);
+                const numMax = ref(20);
+                const numUnique = ref('唯一');
+                const numExcludeHistory = ref(false);
+                const numHistory = ref(new Set());
+                const numResults = ref([]);
+
+                // ==================== 题目抽取状态 ====================
+                const qCount = ref(3);
+                const qMin = ref(1);
+                const qMax = ref(110);
+                const qFilterMode = ref('all'); // 'all' | 'unreviewed' | 'weak' | 'poor'
+                const qExcludeHistory = ref(true);
+                const showQuestionIndex = ref(true);
+                const qSessionHistory = ref(new Set());
+                const qResults = ref([]);
+
+                // ==================== 复盘看板状态 ====================
+                const records = reactive({}); // { [questionId]: { latestRating: 'unreviewed'|'poor'|'medium'|'good', logs: [{ logId, time, rating, note }] } }
+                const dashFilterRating = ref('all');
+                const dashFilterCategory = ref('all');
+                const dashSortBy = ref('id');
+                const dashSearchKeyword = ref('');
+                const dashExpandedIds = ref(new Set());
+                const showImportBox = ref(false);
+                const importJsonStr = ref('');
+                const showExportBox = ref(false);
+                const exportJsonStr = ref('');
+
+                // ==================== 110道完整题库与标准答案 ====================
+                const questionsData = [
+                    // 一、政治素质部分 (1-20)
+                    {
+                        q: "请简述《中华人民共和国宪法》的性质和法律地位?",
+                        a: "宪法以法律的形式确认了中国各族人民奋斗的成果，规定了国家的根本制度和根本任务，是国家的根本法，具有最高的法律效力。全国各族人民、一切国家机关和武装力量、各政党和各社会团体、各企业事业组织，都必须以宪法为根本的活动准则，并且负有维护宪法尊严、保证宪法实施的职责。"
+                    },
+                    {
+                        q: "《中华人民共和国宪法》规定我国的根本制度是什么?",
+                        a: "中华人民共和国是工人阶级领导的、以工农联盟为基础的人民民主专政的社会主义国家。社会主义制度是中华人民共和国的根本制度。中国共产党领导是中国特色社会主义最本质的特征。禁止任何组织或者个人破坏社会主义制度。"
+                    },
+                    {
+                        q: "《中华人民共和国宪法》规定国家应当怎样加强社会主义精神文明建设?",
+                        a: "国家通过普及理想教育、道德教育、文化教育、纪律和法制教育，通过在城乡不同范围的群众中制定和执行各种守则、公约，加强社会主义精神文明建设。国家倡导社会主义核心价值观，提倡爱祖国、爱人民、爱劳动、爱科学、爱社会主义的公德，在人民中进行爱国主义、集体主义和国际主义、共产主义的教育，进行辩证唯物主义和历史唯物主义的教育，反对资本主义的、封建主义的和其他的腐朽思想。"
+                    },
+                    {
+                        q: "在就职时需要公开进行宪法宣誓的人员范围?宪法宣誓的誓词内容是什么?",
+                        a: "范围：各级人民代表大会及县级以上各级人民代表大会常务委员会选举或者决定任命的国家工作人员，以及各级人民政府、监察委员会、人民法院、人民检察院任命的国家工作人员，在就职时应当公开进行宪法宣誓。\n誓词内容是：我宣誓：忠于中华人民共和国宪法，维护宪法权威，履行法定职责，忠于祖国、忠于人民，恪尽职守、廉洁奉公，接受人民监督，为建设富强民主文明和谐美丽的社会主义现代化强国努力奋斗！"
+                    },
+                    {
+                        q: "《中华人民共和国宪法》对我国社会主义法治原则的具体规定有哪些?",
+                        a: "(1) 中华人民共和国实行依法治国，建设社会主义法治国家。\n(2) 国家维护社会主义法制的统一和尊严。一切法律、行政法规和地方性法规都不得同宪法相抵触。\n(3) 一切国家机关和武装力量、各政党和各社会团体、各企业事业组织都必须遵守宪法和法律。一切违反宪法和法律的行为，必须予以追究。\n(4) 任何组织或者个人都不得有超越宪法和法律的特权。"
+                    },
+                    {
+                        q: "党的二十大的主题是什么?从党的二十大起,中国共产党的中心任务是什么?",
+                        a: "(1) 主题是：高举中国特色社会主义伟大旗帜，全面贯彻习近平新时代中国特色社会主义思想，弘扬伟大建党精神，自信自强、守正创新，踔厉奋发、勇毅前行，为全面建设社会主义现代化国家、全面推进中华民族伟大复兴而团结奋斗。\n(2) 中心任务是：团结带领全国各族人民全面建成社会主义现代化强国、实现第二个百年奋斗目标，以中国式现代化全面推进中华民族伟大复兴。"
+                    },
+                    {
+                        q: "请简述“两个确立”“两个维护”“四个意识”“四个自信”的主要内容。",
+                        a: "(1) “两个确立”：确立习近平同志党中央的核心、全党的核心地位，确立习近平新时代中国特色社会主义思想的指导地位。\n(2) “两个维护”：是指坚决维护习近平总书记党中央的核心、全党的核心地位，坚决维护党中央权威和集中统一领导。\n(3) “四个意识”：政治意识、大局意识、核心意识、看齐意识。\n(4) “四个自信”：道路自信、理论自信、制度自信、文化自信。"
+                    },
+                    {
+                        q: "党的二十届四中全会提出“十五五”时期经济社会发展的主要目标是什么?",
+                        a: "高质量发展取得显著成效，科技自立自强水平大幅提高，进一步全面深化改革取得新突破，社会文明程度明显提升，人民生活品质不断提高，美丽中国建设取得新的重大进展，国家安全屏障更加巩固。在此基础上再奋斗五年，到二〇三五年实现我国经济实力、科技实力、国防实力、综合国力和国际影响力大幅跃升，人均国内生产总值达到中等发达国家水平，人民生活更加幸福美好，基本实现社会主义现代化。"
+                    },
+                    {
+                        q: "党的二十届四中全会提出“十五五”时期经济社会发展必须遵循的原则是什么?",
+                        a: "坚持党的全面领导，坚持人民至上，坚持高质量发展，坚持全面深化改革，坚持有效市场和有为政府相结合，坚持统筹发展和安全。"
+                    },
+                    {
+                        q: "请简述党的二十届三中全会提出的进一步全面深化改革的总目标是什么?",
+                        a: "进一步全面深化改革的总目标是继续完善和发展中国特色社会主义制度，推进国家治理体系和治理能力现代化。到二〇三五年，全面建成高水平社会主义市场经济体制，中国特色社会主义制度更加完善，基本实现国家治理体系和治理能力现代化，基本实现社会主义现代化，为到本世纪中叶全面建成社会主义现代化强国奠定坚实基础。要聚焦构建高水平社会主义市场经济体制，聚焦发展全过程人民民主，聚焦建设社会主义文化强国，聚焦提高人民生活品质，聚焦建设美丽中国，聚焦建设更高水平平安中国，聚焦提高党的领导水平和长期执政能力，继续把改革推向前进。到二〇二九年中华人民共和国成立八十周年时，完成本决定提出的改革任务。"
+                    },
+                    {
+                        q: "党的二十届三中全会关于完善中国特色社会主义法治体系的主要内容是什么?",
+                        a: "法治是中国式现代化的重要保障。必须全面贯彻实施宪法，维护宪法权威，协同推进立法、执法、司法、守法各环节改革，健全法律面前人人平等保障机制，弘扬社会主义法治精神，维护社会公平正义，全面推进国家各方面工作法治化。要深化立法领域改革，深入推进依法行政，健全公正执法司法体制机制，完善推进法治社会建设机制，加强涉外法治建设。"
+                    },
+                    {
+                        q: "请简述党的二十届三中全会关于加强涉外法治建设的主要内容是什么?",
+                        a: "建立一体推进涉外立法、执法、司法、守法和法律服务、法治人才培养的工作机制。完善涉外法律法规体系和法治实施体系，深化执法司法国际合作。完善涉外民事法律关系中当事人依法约定管辖、选择适用域外法等司法审判制度。健全国际商事仲裁和调解制度，培育国际一流仲裁机构、律师事务所。积极参与国际规则制定。"
+                    },
+                    {
+                        q: "习近平总书记就建设中国特色社会主义法治体系进行第三十五次集体学习时对律师工作提出的要求是什么?",
+                        a: "要加强对律师队伍的政治引领，教育引导广大律师自觉遵守拥护中国共产党领导、拥护我国社会主义法治等从业基本要求，努力做党和人民满意的好律师。"
+                    },
+                    {
+                        q: "习近平总书记在《谈治国理政》中是如何阐述“深化司法体制改革”的?",
+                        a: "(1) 深化司法体制改革，建设公正高效权威的社会主义司法制度，是推进国家治理体系和治理能力现代化的重要举措。\n(2) 公正司法事关人民切身利益、事关社会公平正义、事关全面推进依法治国；\n(3) 司法是维护社会公平正义的最后一道防线，公正是司法的灵魂和生命；\n(4) 司法体制改革必须在党的统一领导下进行，坚持和完善我国社会主义司法制度，必须为了人民、依靠人民、造福人民，必须同我国根本政治制度、基本政治制度和经济社会发展水平相适应，保持我们自己的特色和优势。"
+                    },
+                    {
+                        q: "什么是新质生产力?",
+                        a: "习近平总书记在《求是》杂志发表的文章中指出，概括地说，新质生产力是创新起主导作用，摆脱传统经济增长方式、生产力发展路径，具有高科技、高效能、高质量特征，符合新发展理念的先进生产力质态。它由技术革命性突破、生产要素创新性配置、产业深度转型升级而催生，以劳动者、劳动资料、劳动对象及其优化组合的跃升为基本内涵，以全要素生产率大幅提升为核心标志，特点是创新，关键在质优，本质是先进生产力。"
+                    },
+                    {
+                        q: "中共中央办公厅国务院办公厅印发《关于深化律师制度改革的意见》对律师“两结合”的管理体制是如何规定的?",
+                        a: "2016年6月，中共中央办公厅、国务院办公厅印发的《关于深化律师制度改革的意见》指出，律师制度是中国特色社会主义司法制度的重要组成部分，是国家法治文明进步的重要标志。律师队伍是落实依法治国基本方略、建设社会主义法治国家的重要力量，是社会主义法治工作队伍的重要组成部分。《意见》提出，坚持和完善司法行政机关行政管理和律师协会行业自律管理相结合的律师工作管理体制，司法行政机关要切实履行对律师、律师事务所和律师协会的监督、指导职责，律师协会要发挥好党和政府联系广大律师的桥梁纽带作用，依法依章程履行行业管理职责，加强律师事务所管理，完善律师事务所及其负责人责任追究制度。"
+                    },
+                    {
+                        q: "为什么说向律师协会交纳会费是律师和律师事务所的法定义务?",
+                        a: "(1) 《中华人民共和国律师法》第四十三条规定：“律师协会是社会团体法人，是律师的自律性组织。全国设立中华全国律师协会，省、自治区、直辖市设立地方律师协会，设区的市根据需要可以设立地方律师协会。”\n(2) 《中华人民共和国律师法》第四十四条规定：“全国律师协会章程由全国会员代表大会制定，报国务院司法行政部门备案。地方律师协会章程由地方会员代表大会制定，报同级司法行政部门备案。”\n(3) 《中华人民共和国律师法》第四十五条规定：“律师、律师事务所应当加入所在地的地方律师协会。加入地方律师协会的律师、律师事务所，同时是全国律师协会的会员。律师协会会员享有律师协会章程规定的权利，履行律师协会章程规定的义务。”\n(4) 各级律师协会章程均规定，个人会员和团体会员有按规定交纳会费的义务。\n因此，向律师协会交纳会费是律师和律师事务所的法定义务。"
+                    },
+                    {
+                        q: "《中华人民共和国律师法》规定律师协会应当履行哪些职责?",
+                        a: "(1) 保障律师依法执业，维护律师的合法权益；\n(2) 总结、交流律师工作经验；\n(3) 制定行业规范和惩戒规则；\n(4) 组织律师业务培训和职业道德、执业纪律教育，对律师的执业活动进行考核；\n(5) 组织管理申请律师执业人员的实习活动，对实习人员进行考核；\n(6) 对律师、律师事务所实施奖励和惩戒；\n(7) 受理对律师的投诉或者举报，调解律师执业活动中发生的纠纷，受理律师的申诉；\n(8) 法律、行政法规、规章以及律师协会章程规定的其他职责。"
+                    },
+                    {
+                        q: "律师参与公益法律服务的范围有哪些?",
+                        a: "鼓励、引导律师为残疾人、农民工、老年人、妇女、未成年人等特殊群体提供公益法律服务；担任村(居)法律顾问；参与公益性法治宣传活动；在公共法律服务平台或者通过其他渠道提供免费法律咨询服务；参与法治扶贫活动，到边疆地区、欠发达地区和少数民族地区担任志愿律师；协助党政机关开展信访接待、涉法涉诉案件化解等工作；提供公益性律师调解服务；参与民营企业“法治体检”公益服务；从事公益法律服务政策研究等工作；为公益法律服务活动提供赞助或者支持；从事其他形式的公益法律服务。"
+                    },
+                    {
+                        q: "2023年6月30日,司法部党组召开律师工作座谈会,贺荣部长代表司法部党组对广大律师提出“五点希望”,请简述“五点希望”的内容是什么?",
+                        a: "一是做拥护中国共产党领导、拥护我国社会主义法治这一从业基本要求的践行者。坚持用党的创新理论凝心铸魂，自觉坚持党对律师工作的领导，坚定走中国特色社会主义法治道路。\n二是做热爱国家，强国建设、民族复兴的奋斗者。传承律师队伍爱国传统，弘扬社会主义核心价值观，充分发挥职业优势服务中国式现代化建设。\n三是做人民群众合法权益的维护者。践行法治为民宗旨，通过依法执业办案、公益法律服务等解决人民群众急难愁盼问题，维护社会公平正义。\n四是做经济社会高质量发展的推动者。心系“国之大者”，潜心钻研业务，更好适应时代新需求新变化，为国家重大发展战略实施提供高质量专业法律服务。\n五是做行业清风正气的守护者。坚持正确价值导向，恪守职业道德和执业纪律，依法依规诚信执业。"
+                    },
+
+                    // 二、道德品行部分 (21-70)
+                    {
+                        q: "按照《中华人民共和国律师法》第四十七条的规定进行行政处罚的行为有哪些?(5条)",
+                        a: "(1) 同时在两个以上律师事务所执业的；\n(2) 以不正当手段承揽业务的；\n(3) 在同一案件中为双方当事人担任代理人，或者代理与本人及其近亲属有利益冲突的法律事务的；\n(4) 从人民法院、人民检察院离任后二年内担任诉讼代理人或者辩护人的；\n(5) 拒绝履行法律援助义务的。"
+                    },
+                    {
+                        q: "律师在执业期间能否以非律师名义从事法律服务?",
+                        a: "律师在执业期间不得以非律师身份从事法律服务，不论是否有偿；即便是代理近亲属的案件，也应在律师事务所统一办理收案手续后以律师身份代理。否则，就构成违规收案、收费，应当给予训诫、警告或者通报批评的纪律处分；情节严重的，给予公开谴责、中止会员权利一个月以上一年以下或者取消会员资格的纪律处分。"
+                    },
+                    {
+                        q: "《中华人民共和国律师法》对律师的赔偿责任是如何规定的?",
+                        a: "律师违法执业或者因过错给当事人造成损失的，由其所在的律师事务所承担赔偿责任。律师事务所赔偿后，可以向有故意或者重大过失行为的律师追偿。"
+                    },
+                    {
+                        q: "律师或律师事务所在受到行政处罚后又发生应当给予行政处罚的情形时,司法行政机关将如何处理?",
+                        a: "《中华人民共和国律师法》第五十一条规定，律师因违反本法规定，在受到警告处罚后一年内又发生应当给予警告处罚情形的，由设区的市级或者直辖市的区人民政府司法行政部门给予停止执业三个月以上一年以下的处罚；在受到停止执业处罚期满后二年内又发生应当给予停止执业处罚情形的，由省、自治区、直辖市人民政府司法行政部门吊销其律师执业证书。\n律师事务所因违反本法规定，在受到停业整顿处罚期满后二年内又发生应当给予停业整顿处罚情形的，由省、自治区、直辖市人民政府司法行政部门吊销律师事务所执业证书。"
+                    },
+                    {
+                        q: "根据《律师执业管理办法》第三十九条规定,律师不得有哪些妨碍、干扰诉讼、仲裁或者行政处理活动的行为?",
+                        a: "(1) 会见在押犯罪嫌疑人、被告人时，违反有关规定，携带犯罪嫌疑人、被告人的近亲属或者其他利害关系人会见，将通讯工具提供给在押犯罪嫌疑人、被告人使用，或者传递物品、文件；\n(2) 无正当理由，拒不按照人民法院通知出庭参与诉讼，或者违反法庭规则，擅自退庭；\n(3) 聚众哄闹、冲击法庭，侮辱、诽谤、威胁、殴打司法工作人员或者诉讼参与人，否定国家认定的邪教组织的性质，或者有其他严重扰乱法庭秩序的行为；\n(4) 故意向司法机关、仲裁机构或者行政机关提供虚假证据或者威胁、利诱他人提供虚假证据，妨碍对方当事人合法取得证据；\n(5) 法律规定的妨碍、干扰诉讼、仲裁或者行政处理活动正常进行的其他行为。"
+                    },
+                    {
+                        q: "根据《律师执业管理办法》第四十三条关于律师应当保守在执业活动中知悉的秘密主要有哪些内容?",
+                        a: "(1) 律师应当保守在执业活动中知悉的国家秘密、商业秘密，不得泄露当事人和其他人的个人隐私；\n(2) 律师对在执业活动中知悉的委托人和其他人不愿泄露的有关情况和信息，应当予以保密。但是，委托人或者其他人准备或者正在实施危害国家安全、公共安全以及严重危害他人人身安全的犯罪事实和信息除外。"
+                    },
+                    {
+                        q: "根据《律师执业管理办法》第四十条规定,律师对案件公开发表言论时应当遵守的原则有哪些?",
+                        a: "(1) 应当依法、客观、公正、审慎；\n(2) 不得发表、散布否定宪法确立的根本政治制度、基本原则和危害国家安全的言论；\n(3) 不得利用网络、媒体挑动对党和政府的不满，发起、参与危害国家安全的组织或者支持、参与、实施危害国家安全的活动；\n(4) 不得以歪曲事实真相、明显违背社会公序良俗等方式，发表恶意诽谤他人的言论，或者发表严重扰乱法庭秩序的言论。"
+                    },
+                    {
+                        q: "根据《律师执业管理办法》第三十八条规定,律师应当依照法定程序履行职责,不得以哪些不正当方式影响依法办理案件?",
+                        a: "(1) 未经当事人委托或者法律援助机构指派，以律师名义为当事人提供法律服务、介入案件，干扰依法办理案件；\n(2) 对本人或者其他律师正在办理的案件进行歪曲、有误导性的宣传和评论，恶意炒作案件；\n(3) 以串联组团、联署签名、发表公开信、组织网上聚集、声援等方式或者借个案研讨之名，制造舆论压力，攻击、诋毁司法机关和司法制度；\n(4) 违反规定披露、散布不公开审理案件的信息、材料，或者本人、其他律师在办案过程中获悉的有关案件重要信息、证据材料。"
+                    },
+                    {
+                        q: "律师执业证书遗失或损毁应如何处理?",
+                        a: "律师应当妥善使用和保管律师执业证书，不得变造、抵押、出借、出租。如有遗失或者损毁的，应当及时报告所在地县级司法行政机关，经所在地设区的市级或者直辖市区(县)司法行政机关向原审核颁证机关申请补发或者换发。律师执业证书遗失的，应当在省级以上报刊或者发证机关指定网站上刊登遗失声明。"
+                    },
+                    {
+                        q: "根据《律师和律师事务所违法行为处罚办法》规定,哪些违法行为属于律师“私自接受委托、收取费用,接受委托人财物或者其他利益”?（4条）",
+                        a: "这个问题主要说的是钱的问题，要和收案那道题做区分\n（点火：私自接案、私吞费用、额外索要、压榨受援人）\n(1) 违反统一接受委托规定或者在被处以停止执业期间，私自接受委托，承办法律事务的；\n(2) 违反收费管理规定，私自收取、使用、侵占律师服务费以及律师异地办案差旅费用的；\n(3) 在律师事务所统一收费外又向委托人索要其他费用、财物或者获取其他利益的；\n(4) 向法律援助受援人索要费用或者接受受援人的财物或者其他利益的。"
+                    },
+                    {
+                        q: "根据《律师和律师事务所违法行为处罚办法》第十一条的规定,律师接受委托后可以拒绝辩护或者代理的情形有哪些?(5条)",
+                        a: "(1) 委托事项违法，或者委托人利用律师提供的法律服务从事违法活动的；\n(2) 委托人故意隐瞒与案件有关的重要事实或者提供虚假、伪造的证据材料的；\n(3) 委托人不履行委托合同约定义务的；\n(4) 律师因患严重疾病或者受到停止执业以上行政处罚的；\n(5) 其他依法可以拒绝辩护、代理的。"
+                    },
+                    {
+                        q: "根据《律师和律师事务所违法行为处罚办法》第十五条规定,有哪些行为属于《中华人民共和国律师法》第四十九条第二项规定的律师“向法官、检察官、仲裁员以及其他有关工作人员行贿,介绍贿赂或者指使、诱导当事人行贿的”违法行为?",
+                        a: "(1) 利用承办案件的法官、检察官、仲裁员以及其他工作人员或者其近亲属举办婚丧喜庆事宜等时机，以向其馈赠礼品、金钱、有价证券等方式行贿的；\n(2) 以装修住宅、报销个人费用、资助旅游娱乐等方式向法官、检察官、仲裁员以及其他工作人员行贿的；\n(3) 以提供交通工具、通讯工具、住房或者其他物品等方式向法官、检察官、仲裁员以及其他工作人员行贿的；\n(4) 以影响案件办理结果为目的，直接向法官、检察官、仲裁员以及其他工作人员行贿、介绍贿赂或者指使、诱导当事人行贿的。"
+                    },
+                    {
+                        q: "根据《律师和律师事务所违法行为处罚办法》第十六条规定,有哪些行为属于《中华人民共和国律师法》第四十九条第三项规定的律师“向司法行政部门提供虚假材料或者有其他弄虚作假行为的”违法行为?",
+                        a: "(1) 在司法行政机关实施检查、监督工作中，向其隐瞒真实情况，拒不提供或者提供不实、虚假材料，或者隐匿、毁灭、伪造证据材料的；\n(2) 在参加律师执业年度考核、执业评价、评先创优活动中，提供不实、虚假、伪造的材料或者有其他弄虚作假行为的；\n(3) 在申请变更执业机构、办理执业终止、注销等手续时，提供不实、虚假、伪造的材料的。"
+                    },
+                    {
+                        q: "《中华人民共和国律师法》第四十九条第四项规定的律师“故意提供虚假证据或者威胁、利诱他人提供虚假证据,妨碍对方当事人合法取得证据的”违法行为有哪些?（3条）",
+                        a: "(1) 故意向司法机关、行政机关或者仲裁机构提交虚假证据，或者指使、威胁、利诱他人提供虚假证据的；\n(2) 指示或者帮助委托人或者他人伪造、隐匿、毁灭证据，指使或者帮助犯罪嫌疑人、被告人串供，威胁、利诱证人不作证或者作伪证的；\n(3) 妨碍对方当事人及其代理人、辩护人合法取证的，或者阻止他人向案件承办机关或者对方当事人提供证据的。"
+                    },
+                    {
+                        q: "《中华人民共和国律师法》第四十九条第六项规定的律师“扰乱法庭、仲裁庭秩序,干扰诉讼、仲裁活动的正常进行的”违法行为有哪些?",
+                        a: "(1) 在法庭、仲裁庭上发表或者指使、诱导委托人发表扰乱诉讼、仲裁活动正常进行的言论的；\n(2) 阻止委托人或者其他诉讼参与人出庭，致使诉讼、仲裁活动不能正常进行的；\n(3) 煽动、教唆他人扰乱法庭、仲裁庭秩序的；\n(4) 无正当理由，当庭拒绝辩护、代理，拒绝签收司法文书或者拒绝在有关诉讼文书上签署意见的。"
+                    },
+                    {
+                        q: "律师、律师事务所有哪些情形,可以从轻或者减轻行政处罚?",
+                        a: "(1) 主动消除或者减轻违法行为危害后果的；\n(2) 主动报告，积极配合司法行政机关查处违法行为的；\n(3) 受他人胁迫实施违法行为的；\n(4) 其他依法应当从轻或者减轻处罚的。"
+                    },
+                    {
+                        q: "律师、律师事务所的违法行为有下列情形之一的,属于《中华人民共和国律师法》规定的违法情节严重或者情节特别严重,应当在法定的行政处罚种类及幅度的范围内从重处罚。",
+                        a: "(1) 违法行为给当事人、第三人或者社会公共利益造成重大损失的；\n(2) 违法行为性质、情节恶劣，严重损害律师行业形象，造成恶劣社会影响的；\n(3) 同时有两项以上违法行为或者违法涉案金额巨大的；\n(4) 在司法行政机关查处违法行为期间，拒不纠正或者继续实施违法行为，拒绝提交、隐匿、毁灭证据或者提供虚假、伪造的证据的；\n(5) 其他依法应当从重处罚的。"
+                    },
+                    {
+                        q: "根据《律师事务所管理办法》第五十条规定,律师事务所不得放任、纵容本所律师有哪些行为?(简述1-3项)",
+                        a: "(1) 采取煽动、教唆和组织当事人或者其他人员到司法机关或者其他国家机关静坐、举牌、打横幅、喊口号、声援、围观等扰乱公共秩序、危害公共安全的非法手段，聚众滋事，制造影响，向有关部门施加压力；\n(2) 对本人或者其他律师正在办理的案件进行歪曲、有误导性的宣传和评论，恶意炒作案件；（以不正当方式影响办案第二条）\n(3) 以串联组团、联署签名、发表公开信、组织网上聚集、声援等方式或者借个案研讨之名，制造舆论压力，攻击、诋毁司法机关和司法制度。（以不正当方式影响办案第三条）"
+                    },
+                    {
+                        q: "根据《律师事务所管理办法》第五十条规定,律师事务所不得放任、纵容本所律师有哪些行为?(简述4-6项)",
+                        a: "(4) 无正当理由，拒不按照人民法院通知出庭参与诉讼，或者违反法庭规则，擅自退庭；\n(5) 聚众哄闹、冲击法庭，侮辱、诽谤、威胁、殴打司法工作人员或者诉讼参与人，否定国家认定的邪教组织的性质，或者有其他严重扰乱法庭秩序的行为；\n(6) 发表、散布否定宪法确立的根本政治制度、基本原则和危害国家安全的言论，利用网络、媒体挑动对党和政府的不满，发起、参与危害国家安全的组织或者支持、参与、实施危害国家安全的活动；以歪曲事实真相、明显违背社会公序良俗等方式，发表恶意诽谤他人的言论，或者发表严重扰乱法庭秩序的言论。"
+                    },
+                    {
+                        q: "根据《关于进一步规范律师服务收费的意见》的规定,律师事务所与当事人协商收费时应当注意哪些事项?（1个原则+5条不得)",
+                        a: "律师事务所与当事人协商收费，应当遵循公开公平、平等自愿、诚实信用的原则，\n(1)不得作出违背社会公序良俗或者显失公平的约定，\n(2)不得采取欺骗、诱导等方式促使当事人接受律师服务价格，\n(3)不得相互串通、操纵价格。\n(4)律师事务所不得在协商收费时向当事人明示或者暗示与司法机关、仲裁机构及其工作人员有特殊关系，\n(5)不得以签订“阴阳合同”等方式规避律师服务收费限制性规定。"
+                    },
+                    {
+                        q: "根据《关于进一步规范律师服务收费的意见》的规定,律师不得或禁止实行风险代理收费的情形包括哪些?",
+                        a: "(1) 婚姻、继承案件；\n(2) 请求给予社会保险待遇或者最低生活保障待遇的；\n(3) 请求给付赡养费、抚养费、扶养费、抚恤金、救济金、工伤赔偿的；\n(4) 请求支付劳动报酬的；\n(5) 刑事诉讼案件、行政诉讼案件、国家赔偿案件及群体性诉讼案件。"
+                    },
+                    {
+                        q: "根据《关于进一步规范律师服务收费的意见》,律师个人代收律师服务费后如何处理?",
+                        a: "律师服务收费应当由财务人员统一收取、统一入账、统一结算，并及时出具合法票据，不得用内部收据等代替合法票据，不得由律师直接向当事人收取律师服务费。确因交通不便等特殊情况，当事人提出由律师代为收取律师服务费的，律师应当在代收后3个工作日内将代收的律师服务费转入律师事务所账户。"
+                    },
+                    {
+                        q: "公安部、司法部《关于进一步保障和规范看守所律师会见工作的通知》,对于规范看守所律师会见的规定内容是什么?",
+                        a: "公安部、司法部建立全国律师信息共享机制，共享全国律师的执业资格、执业状态等相关信息，并进一步规范辩护委托书、会见介绍信和刑事法律援助辩护(代理)函等文书的格式。律师应当遵守看守所安全管理规定，严禁携带违禁物品进入会见区，严禁带经办案单位核实或许可的律师助理、翻译以外的其他人员参加会见，严禁将通讯工具提供给犯罪嫌疑人、被告人使用或者传递违禁物品、文件。发现律师在会见中有违规行为的，看守所应立即制止，并及时通报同级司法行政机关、律师协会。"
+                    },
+                    {
+                        q: "根据《关于建立健全禁止法官、检察官与律师不正当接触交往制度机制的意见》规定,禁止法官、检察官与律师接触交往的行为有哪些?(简述1-3项)",
+                        a: "(1) 在案件办理过程中，非因办案需要且未经批准在非工作场所、非工作时间与辩护、代理律师接触。\n(2) 接受律师或者律师事务所请托，过问、干预或者插手其他法官、检察官正在办理的案件，为律师或者律师事务所请托说情、打探案情、通风报信；为案件承办法官、检察官私下会见案件辩护、代理律师牵线搭桥；非因工作需要，为律师或者律师事务所转递涉案材料；向律师泄露案情、办案工作秘密或者其他依法依规不得泄露的情况；违规为律师或律师事务所出具与案件有关的各类专家意见。\n(3) 为律师介绍案件；为当事人推荐、介绍律师作为诉讼代理人、辩护人；要求、建议或者暗示当事人更换符合代理条件的律师；索取或者收受案件代理费用或者其他利益。"
+                    },
+                    {
+                        q: "根据《关于建立健全禁止法官、检察官与律师不正当接触交往制度机制的意见》规定,禁止法官、检察官与律师接触交往的行为有哪些?(简述4-7项)",
+                        a: "(4) 向律师或者其当事人索贿，接受律师或者其当事人行贿；索取或者收受律师借礼尚往来、婚丧嫁娶等赠送的礼金、礼品、消费卡和有价证券、股权、其他金融产品等财物；向律师借款、租借房屋、借用交通工具、通讯工具或者其他物品；接受律师吃请、娱乐等可能影响公正履行职务的安排。\n(5) 非因工作需要且未经批准，擅自参加律师事务所或者律师举办的讲座、座谈、研讨、培训、论坛、学术交流、开业庆典等活动；以提供法律咨询、法律服务等名义接受律师事务所或者律师输送的相关利益。\n(6) 与律师以合作、合资、代持等方式，经商办企业或者从事其他营利性活动；本人配偶、子女及其配偶在律师事务所担任“隐名合伙人”；本人配偶、子女及其配偶显名或者隐名与律师“合作”开办企业或者“合作”投资；默许、纵容、包庇配偶、子女及其配偶或者其他特定关系人在律师事务所违规取酬；向律师或律师事务所放贷收取高额利息。\n(7) 其他可能影响司法公正和司法权威的不正当接触交往行为。"
+                    },
+                    {
+                        q: "律师参与庭审活动不得实施哪些传播庭审活动的行为?",
+                        a: "最高人民法院、司法部《关于依法保障律师诉讼权利和规范律师参与庭审活动的通知》第二条规定，律师参加庭审不得对庭审活动进行录音、录像、拍照或使用移动通信工具等传播庭审活动，不得进行其他违反法庭规则和不服从法庭指令的行为。律师对庭审活动进行录音、录像、拍照或使用移动通信工具等传播庭审活动的，人民法院可以暂扣其使用的设备及存储介质，删除相关内容。"
+                    },
+                    {
+                        q: "根据《律师职业道德和执业纪律规范》的规定,律师在执业机构中应遵守的纪律有哪些?(5条)",
+                        a: "注意题干：在“执业机构”中应遵守的纪律\n(1) 必须接受律师事务所的监督和管理；\n(2) 不得同时在两个或两个以上律师事务所执业；\n(3) 不得以个人名义私自接受委托，不得私自收取费用；\n(4) 不得违反律师事务所收费制度和财务纪律，挪用、私分、侵占业务收费；\n(5) 律师因执业过错给律师事务所造成损失的，应当承担相应责任。"
+                    },
+                    {
+                        q: "《律师职业道德基本准则》第五条是关于诚信这一律师职业道德基本准则的规定,简述其主要内容。(4句话)",
+                        a: "(树意识、16字作风、尽义务维权、守秘密) \n律师应当牢固树立诚信意识，自觉遵守执业行为规范，\n在执业中恪尽职守、诚实守信、勤勉尽责、严格自律，\n积极履行合同约定义务和法定义务，维护委托人合法权益，\n保守在执业活动中知悉的国家机密、商业秘密和个人隐私。"
+                    },
+                    {
+                        q: "请简述律师应当追求的核心价值是什么?",
+                        a: "律师应当把维护公平正义作为核心价值追求，为当事人提供勤勉尽责、优质高效的法律服务，努力维护当事人合法权益。引导当事人依法理性维权，维护社会大局稳定。依法充分履行辩护和代理职责，促进案件依法、公正解决。"
+                    },
+                    {
+                        q: "中华全国律师协会《申请律师执业人员管理规则》第六条规定不属于“品行良好”条件的情形有哪些?(10条)",
+                        a: "(1) 因故意犯罪受过刑事处罚的；\n(2) 被开除公职的；\n(3) 因违法违纪行为被国家机关、事业单位辞退的；\n(4) 因违犯党纪受到撤销党内职务以上处分的；\n(5) 被吊销律师、公证员执业证书的；\n(6) 因违法违规行为被相关行业主管机关或者行业协会撤销其他职业资格或者吊销其他执业证书的；\n(7) 因违反治安管理行为被处以行政拘留的；\n(8) 因严重失信行为被国家有关单位确定为失信联合惩戒对象并纳入国家信用信息共享平台的；\n(9) 受到不得再次申请实习的处分，处分期限未满的；\n(10) 有其他产生严重不良社会影响行为的。"
+                    },
+                    {
+                        q: "实习期间,实习人员应当遵守律师职业道德和执业纪律以及实习纪律,不得有下列哪些行为?(10条)",
+                        a: "六个冒充越权（从接案到开庭）\n三条通用红线\n一条兜底\n(1) 独自或者以实习人员以外的身份承办律师业务；\n(2) 独自或者以律师名义在委托代理协议、法律顾问协议等与提供法律服务相关的协议上签字，对外签发法律文书；\n(3) 以律师名义在法庭、仲裁庭上发表辩护或者代理意见；\n(4) 以律师名义洽谈、承揽业务；\n(5) 以律师名义印制名片及其他相关资料或者进行推介；\n(6) 实施其他依法应以律师名义从事的活动；\n(7) 妨碍诉讼或者仲裁活动的正常进行；\n(8) 泄露国家机密、当事人商业秘密或者个人隐私；\n(9) 私自收取当事人费用或者其他财物；\n(10) 违反《中华人民共和国律师法》、律师职业道德和执业纪律、实习纪律以及其他有损律师职业形象的行为。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》第二十二条规定,提供法律服务不尽责,应给予纪律处分的情形有哪些?",
+                        a: "(1) 超越委托权限，从事代理活动的；\n(2) 接受委托后，无正当理由，不向委托人提供约定的法律服务的，拒绝辩护或者代理的，包括：不及时调查了解案情，不及时收集、申请保全证据材料，或者无故延误参与诉讼、申请执行，逾期行使撤销权、异议权等权利，或者逾期申请办理批准、登记、变更、披露、备案、公告等手续，给委托人造成损失的；\n(3) 无正当理由拒绝接受律师事务所或者法律援助机构指派的法律援助案件的，或者接受指派后，拖延、懈怠履行或者擅自停止履行法律援助职责的，或者接受指派后，未经律师事务所或者法律援助机构同意，擅自将法律援助案件转交其他人员办理的；\n(4) 因过错导致出具的法律意见书存在重大遗漏或者错误，给当事人或者第三人造成重大损失的，或者对社会公共利益造成危害的。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》第二十三条规定,律师利用提供法律服务的便利,损害委托人利益,应当给予训诫、警告直至取消会员资格的纪律处分。请简述具体情形有哪些?",
+                        a: "(1) 利用提供法律服务的便利牟取当事人利益；接受委托后，故意损害委托人利益的；\n(2) 接受对方当事人的财物及其他利益，与对方当事人、第三人恶意串通，向对方当事人、第三人提供不利于委托人的信息、证据材料，侵害委托人的权益；\n(3) 为阻挠当事人解除委托关系，威胁、恐吓当事人或者扣留当事人提供的材料的。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》规定律师违规收案、收费应给予纪律处分的情形有哪些?",
+                        a: "(1) 不按规定与委托人签订书面委托合同的；\n(2) 不按规定统一接受委托、签订书面委托合同和收费合同，统一收取委托人支付的各项费用的；\n(3) 不按规定统一保管、使用律师服务专用文书、财务票据、业务档案的；\n(4) 私自接受委托，私自向委托人收取费用，或者收取规定、约定之外的费用或者财物的；违反收费协议约定，擅自提高收费的；\n(5) 执业期间以非律师身份从事有偿法律服务的；\n(6) 不向委托人开具律师服务收费合法票据，或者不向委托人提交办案费用开支有效凭证的。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》第二十九条规定,律师以不正当手段争揽业务的,应给予训诫、警告直至取消会员资格的纪律处分。请简述可以被认定为以不正当手段争揽业务的行为的具体情形。",
+                        a: "(1) 为争揽业务，向委托人作虚假承诺的；\n(2) 向当事人明示或者暗示与办案机关、政府部门及其工作人员有特殊关系的；\n(3) 利用媒体、广告或者其他方式进行不真实或者不适当宣传的；\n(4) 以支付介绍费等不正当手段争揽业务的；\n(5) 在事前和事后为承办案件的法官、检察官、仲裁员牟取物质的或非物质的利益，为了争揽案件事前和事后给予有关人员物质的或非物质利益的；\n(6) 在司法机关、监管场所周边违规设立办公场所、散发广告、举牌等不正当手段争揽业务的。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师业务推广行为规则(试行)》第五条规定,律师、律师事务所不得发布律师服务广告的情形有哪些?",
+                        a: "(1) 未参加年度考核或者未通过年度考核的；\n(2) 处于中止会员权利、停止执业或者停业整顿处罚期间，以及前述期间届满后未满一年的；\n(3) 受到通报批评、公开谴责未满一年的；\n(4) 其他不得发布广告的情形。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师业务推广行为规则(试行)》第十条规定,律师、律师事务所进行业务推广时,不得有哪些行为?(简述1-6项)",
+                        a: "(1) 虚假、误导性或者夸大性宣传；\n(2) 与登记注册信息不一致；\n(3) 明示或者暗示与司法机关、政府机关、社会团体、中介机构及其工作人员有特殊关系；\n(4) 贬低其他律师事务所或者律师的；或与其他律师事务所、其他律师之间进行比较宣传；\n(5) 承诺办案结果；\n(6) 宣示胜诉率、赔偿额、标的额等可能使公众对律师、律师事务所产生不合理期望。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师业务推广行为规则(试行)》第十条规定,律师、律师事务所进行业务推广时,不得有哪些行为?(简述7-13项)",
+                        a: "搞价格战，曝隐私，形象低俗，乱带高帽\n(7) 明示或者暗示提供回扣或者其他利益；\n(8) 不收费或者减低收费(法律援助案件除外)；\n(9) 未经客户许可发布的客户信息；\n(10) 与律师职业不相称的文字、图案、图片和视听资料；\n(11) 在非履行律师协会任职职责的活动中使用律师协会任职的职务；\n(12) 使用中国、中华、全国、外国国家名称等字样，或者未经同意使用国际组织、国家机关、政府组织、行业协会名称；\n(13) 法律法规、规章、行业规范规定的其他禁止性内容。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师执业行为规范》第十四条规定律师不得有哪些行为?",
+                        a: "(1) 产生不良社会影响，有损律师行业声誉的行为；\n(2) 妨碍国家司法、行政机关依法行使职权的行为；\n(3) 参加法律所禁止的机构、组织或者社会团体；\n(4) 其他违反法律法规、律师协会行业规范及职业道德的行为；\n(5) 其他违反社会公德，严重损害律师职业形象的行为。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师执业行为规范》第五十八条规定具有某些特定情形之一时,律师事务所应当终止委托关系。请陈述这些具体情形。（5条）",
+                        a: "(1) 委托人提出终止委托协议的；\n(2) 律师受到吊销执业证书或者停止执业处罚的，经过协商，委托人不同意更换律师的；\n(3) 当发现有本规范第五十一条规定的利益冲突情形的；\n(4) 受委托律师因健康状况不适合继续履行委托协议的，经过协商，委托人不同意更换律师的；\n(5) 继续履行委托协议违反法律法规、规章或者本规范的。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师执业行为规范》第五十九条规定具有某些特定情形之一时,经提示委托人不纠正的,律师事务所可以解除委托协议。请陈述这些具体情形。",
+                        a: "(1) 委托人利用律师提供的法律服务从事违法犯罪活动的；\n(2) 委托人要求律师完成无法实现或者不合理的目标的；\n(3) 委托人没有履行委托合同义务的；\n(4) 在事先无法预见的前提下，律师向委托人提供法律服务将会给律师带来不合理的费用负担，或给律师造成难以承受的、不合理的困难的；\n(5) 其他合法的理由的。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师执业行为规范》明确规定禁止律师和律师事务所非法牟取委托人利益,请说明这些规定的具体内容。",
+                        a: "点火：三不得+一可以" +
+                            "\n不得谋取争议权益" +
+                            "\n不得与争议权益联系或交易" +
+                            "\n不得让白手套买/租标的物" +
+                            "\n可以风险代理" +
+                            "\n(1) 律师和律师事务所不得利用提供法律服务的便利，牟取当事人争议的权益；\n(2) 律师和律师事务所不得违法与委托人就争议的权益产生经济上的联系，不得与委托人约定将争议标的物出售给自己；\n(3) 律师和律师事务所不得委托他人为自己或为自己的近亲属收购、租赁委托人与他人发生争议的标的物；\n(4) 律师事务所可以依法与当事人或委托人签订以回收款项或标的物为前提按照一定比例收取货币或实物作为律师费用的协议。"
+                    },
+                    {
+                        q: "中华全国律师协会《律师执业行为规范》规定律师和律师事务所不得擅自或者非法使用社会专有名称或者知名度较高的名称混淆误导委托人,这些社会特有名称和知名度较高的名称具体包括哪些?(4条)",
+                        a: "官方、学术、跨界名人、行业大牛\n(1) 有关政党、司法机关、行政机关、行业协会名称；\n(2) 具有较高社会知名度的高等法学院校或者科研机构的名称；\n(3) 为社会公众共知、具有较高知名度的非律师公众人物名称；\n(4) 知名律师以及律师事务所名称。"
+                    },
+                    {
+                        q: "律师或律师事务所在与行政机关、行业管理部门、司法机关及司法人员接触中,不得采用哪些手段与同行进行业务竞争?",
+                        a: "点火：搞行业垄断、让机关强行指定、拿马甲压人、立牌子、发礼品\n(1) 借助行政机关或行业管理部门的权力，或通过与某机关、某部门、某行业对某一类的法律服务事务进行垄断的方式争揽业务；\n(2) 没有法律依据地要求行政机关超越行政职权，限定委托人接受其指定的律师或律师事务所提供的法律服务，限制其他律师正当的业务竞争；\n(3) 利用律师兼有的其他身份影响所承办业务正常处理和审理；\n(4) 在司法机关内及附近200米范围内设立律师广告牌和其他宣传媒介；\n(5) 向司法机关和司法人员散发附带律师广告内容的物品。"
+                    },
+                    {
+                        q: "中华全国律师协会《关于禁止违规炒作案件的规则(试行)》中规定,律师及其所在律师事务所应当依法依规履行职责,不得以哪些方式违规炒作案件?(5条)",
+                        a: "(点火：拉帮结派造势、自媒体带节奏、网暴办案人员及诉讼参与人、未成年人、煽动教唆他人)\n(1) 通过联署签名、发表公开信、组织网上聚集、声援等方式或借个案研讨之名，制造舆论压力，影响案件依法办理。\n(2) 通过媒体、自媒体等平台就案件进行歪曲、有误导性的宣传、评论，以转发、评论等方式炒作误导性、虚假性、推测性的信息。\n(3) 侮辱、诽谤办案人员、对方当事人及其他诉讼参与人，或者通过披露有损办案人员、当事人及其他利害关系人隐私等不正当方式，歪曲、丑化办案人员、当事人及其他诉讼参与人形象。\n(4) 违规披露未成年人案件中涉案未成年人的个人信息，或者在非未成年人案件中以未成年人案件为噱头进行宣传，煽动舆论，制造影响。\n(5) 煽动、教唆当事人或其他人员通过网络等传播媒介对案件发表不当评论，制造影响，向办案机关施压。"
+                    },
+                    {
+                        q: "《福建省律师协会律师执业利益冲突认定和处理规则》规定了利益冲突的情形及其处理和豁免。请简述什么叫利益冲突,并说明利益冲突的豁免和禁止。",
+                        a: "(1) 利益冲突，指本会会员在执行当事人委托事务时，因自身利益(即直接利益冲突)或者受当事人之间利害关系影响(即间接利益冲突)，可能损害当事人权益的情形。\n(2) 对于直接利益冲突，除在非诉讼业务中双方当事人共同委托外，不论当事人是否同意豁免，会员都不得接受委托；已经接受委托的，应当立即终止委托关系。\n(3) 对于间接利益冲突，会员应当立即将利益冲突的事实和可能产生的后果通知利益冲突的各方当事人，除非各方当事人以书面等有效形式一致给予豁免，否则，会员不得接受委托，已经接受委托的，应当终止委托关系；已经实施委托的，应当停止实施。"
+                    },
+                    {
+                        q: "《福建省律师协会律师执业利益冲突认定和处理规则》规定的间接利益冲突的情形有哪些?(简述1-6项)",
+                        a: "(1) 在对抗性案件中，律师事务所律师担任一方当事人的代理人，而同一律师事务所的其他律师是该案件中对方当事人的近亲属；\n(2) 在刑事案件中，律师事务所律师担任犯罪嫌疑人(被告人)的辩护人，而同一律师事务所的其他律师是该案件被害人的近亲属；\n(3) 同一律师事务所接受正在代理的对抗性案件或非诉讼业务当事人的对方当事人所委托的其他法律业务；\n(4) 同一律师在结束代理当事人的对抗性案件或非诉讼业务后6个月之内，又担任该当事人在其他对抗性案件或者非诉讼业务中对方当事人的代理人；\n(5) 律师事务所与当事人存在法律服务关系，在某一对抗性案件中该当事人未要求该律师事务所担任其代理人，而该律师事务所其他律师担任该当事人在该案件中对方当事人的代理人；\n(6) 律师在代理某当事人的对抗性案件或非诉讼业务期间，转所至另一律师事务所，该律师在转入的律师事务所担任该当事人在同一对抗性案件或非诉讼业务中对方当事人的代理人。"
+                    },
+                    {
+                        q: "《福建省律师协会律师执业利益冲突认定和处理规则》规定的间接利益冲突的情形有哪些?(简述7-12项)",
+                        a: "(7) 律师曾在某单位担任中层以上管理职务，转入律师事务所后12个月内担任该单位在对抗性案件或者非诉讼业务中对方当事人的代理人；\n(8) 律师事务所律师代理当事人的对抗性案件或非诉讼业务，而该律师的近亲属是对方当事人的高级管理人员、代理人，或与对方当事人的高级管理人员、代理人有利害关系；\n(9) 除通过证券交易所进行交易持有公司股份外，律师为该公司的股东，又担任该公司在对抗性案件或者非诉讼业务中对方当事人的代理人；\n(10) 同一律师事务所代理当事人的对抗性案件或非诉讼业务，违反与当事人的约定代理该当事人主要竞争对手的对抗性案件或非诉讼业务的；\n(11) 同一律师事务所在接受两名或两名以上的同案犯罪嫌疑人、被告人的委托，未告知委托人并经其同意的；\n(12) 其他与本条所列情形相似，且依据律师执业经验和行业常识能够判断为间接利益冲突的行为。"
+                    },
+                    {
+                        q: "《福建省律师协会律师执业利益冲突认定和处理规则》规定的直接利益冲突的情形有哪些?(简述1-6项)",
+                        a: "(1) 在对抗性案件中，律师在同一案件中担任双方当事人的代理人，或代理与本人或者其近亲属有利益冲突的法律事务的；\n(2) 律师代理对抗性案件或者非诉讼业务，其近亲属是对方当事人的股东、法定代表人或者代理人的；\n(3) 在对抗性案件中，同一律师事务所律师同时担任双方当事人的代理人，或者律师事务所律师担任一方当事人的代理人，而律师事务所、律师事务所律师或工作人员是该案件中的对方当事人；\n(4) 在非诉讼业务中，除双方当事人共同委托外，同一律师事务所律师同时担任利益冲突的双方当事人的代理人；\n(5) 在刑事案件中，同一律师事务所律师同时担任同一刑事案件被害人的代理人和犯罪嫌疑人、被告人的辩护人，但在该县区域内只有一家律师事务所且事先征得当事人同意的除外；\n(6) 在刑事案件中，律师事务所律师担任犯罪嫌疑人、被告人的辩护人，而同一律师事务所的其他律师是该案件的被害人。"
+                    },
+                    {
+                        q: "《福建省律师协会律师执业利益冲突认定和处理规则》规定的直接利益冲突的情形有哪些?(简述7-12项)",
+                        a: "(7) 在委托关系终止后，同一律师事务所或同一律师又就同一法律事务接受对方当事人的委托的；\n(8) 律师在担任法律顾问期间，为顾问单位的对方当事人或者有利益冲突的当事人代理、辩护的；\n(9) 曾经担任法官、检察官的律师从人民法院、人民检察院离任后，二年内以律师身份担任诉讼代理人或者辩护人；曾经担任法官、检察官的律师，以代理人、辩护人的身份承办在原任职单位期间自己办理过的案件；\n(10) 担任所在律师事务所其他律师任仲裁员的仲裁案件的代理人的；\n(11) 在同一非诉讼法律事务中，法律、行政法规明确规定不得同时接受对立双方或者利益冲突各方委托而接受委托的；\n(12) 其他依据律师执业经验和行业常识能够判断为应当主动回避且不得办理的直接利益冲突情形。"
+                    },
+
+                    // 三、专业知识题 (71-90)
+                    {
+                        q: "民事法律行为无效、被撤销或者确定不发生效力后,产生何种法律后果?",
+                        a: "行为人因该行为取得的财产，应当予以返还；不能返还或者没有必要返还的，应当折价补偿。有过错的一方应当赔偿对方由此所受到的损失；各方都有过错的，应当各自承担相应的责任。法律另有规定的，依照其规定。"
+                    },
+                    {
+                        q: "请简述表见代理的相关规定?",
+                        a: "行为人没有代理权、超越代理权或者代理权终止后，仍然实施代理行为，相对人有理由相信行为人有代理权的，代理行为有效。"
+                    },
+                    {
+                        q: "根据最高人民法院《关于适用〈中华人民共和国民法典〉合同编通则若干问题的解释》的规定,合同虽然违反法律、行政法规的强制性规定,但具有哪些情形的,可以认定该合同不因违反强制性规定无效?",
+                        a: "(1) 强制性规定虽然旨在维护社会公共秩序，但是合同的实际履行对社会公共秩序造成的影响显著轻微，认定合同无效将导致案件处理结果有失公平公正；\n(2) 强制性规定旨在维护政府的税收、土地出让金等国家利益或者其他民事主体的合法利益而非合同当事人的民事权益，认定合同有效不会影响该规范目的的实现；\n(3) 强制性规定旨在要求当事人一方加强风险控制、内部管理等，对方无能力或者无义务审查合同是否违反强制性规定，认定合同无效将使其承担不利后果；\n(4) 当事人一方虽然在订立合同时违反强制性规定，但是在合同订立后其已经具备补正违反强制性规定的条件却违背诚信原则不予补正；\n(5) 法律、司法解释规定的其他情形。"
+                    },
+                    {
+                        q: "请简述让与担保的法律规定?",
+                        a: "根据最高人民法院《关于适用〈中华人民共和国民法典〉有关担保制度的解释》第六十八条规定：\n(1) 债务人或者第三人与债权人约定将财产形式上转移至债权人名下，债务人不履行到期债务，债权人有权对财产折价或者以拍卖、变卖该财产所得价款偿还债务的，人民法院应当认定该约定有效。当事人已经完成财产权利变动的公示，债务人不履行到期债务，债权人请求参照民法典关于担保物权的有关规定就该财产优先受偿的，人民法院应予支持。\n(2) 债务人或者第三人与债权人约定将财产形式上转移至债权人名下，债务人不履行到期债务，财产归债权人所有的，人民法院应当认定该约定无效，但是不影响当事人有关提供担保的意思表示的效力。当事人已经完成财产权利变动的公示，债务人不履行到期债务，债权人请求对该财产享有所有权的，人民法院不予支持；债权人请求参照民法典关于担保物权的规定对财产折价或者以拍卖、变卖该财产所得的价款优先受偿的，人民法院应予支持；债务人履行债务后请求返还财产，或者请求对财产折价或者以拍卖、变卖所得的价款清偿债务的，人民法院应予支持。\n(3) 债务人与债权人约定将财产转移至债权人名下，在一定期间后再由债务人或者其指定的第三人以交易本金加上溢价款回购，债务人到期不履行回购义务，财产归债权人所有的，人民法院应当参照第二款规定处理。回购对象自始不存在的，人民法院应当依照民法典第一百四十六条第二款的规定，按照其实际构成的法律关系处理。"
+                    },
+                    {
+                        q: "哪些情形下人民法院可以判决返还彩礼?",
+                        a: "双方已办理结婚登记且共同生活，离婚时一方请求返还按照习俗给付的彩礼的，人民法院一般不予支持。但是，如果共同生活时间较短且彩礼数额过高的，人民法院可以根据彩礼实际使用及嫁妆情况，综合考虑彩礼数额、共同生活及孕育情况、双方过错等事实，结合当地习俗，确定是否返还以及返还的具体比例。人民法院认定彩礼数额是否过高，应当综合考虑彩礼给付方所在地居民人均可支配收入、给付方家庭经济情况以及当地习俗等因素。\n双方未办理结婚登记但已共同生活，一方请求返还按照习俗给付的彩礼的，人民法院应当根据彩礼实际使用及嫁妆情况，综合考虑共同生活及孕育情况、双方过错等事实，结合当地习俗，确定是否返还以及返还的具体比例。"
+                    },
+                    {
+                        q: "人民法院可以依据哪些资料或信息冻结被执行人的股权?",
+                        a: "(1) 股权所在公司的章程、股东名册等资料；\n(2) 公司登记机关的登记、备案信息；\n(3) 国家企业信用信息公示系统的公示信息。\n案外人基于实体权利对被冻结股权提出排除执行异议的，人民法院应当依照民事诉讼法第二百二十七条的规定进行审查。"
+                    },
+                    {
+                        q: "《中华人民共和国合伙企业法》关于合伙企业利润分配、亏损分担是如何规定的?",
+                        a: "合伙企业的利润分配、亏损分担，按照合伙协议的约定办理；合伙协议未约定或者约定不明确的，由合伙人协商决定；协商不成的，由合伙人按照实缴出资比例分配、分担；无法确定出资比例的，由合伙人平均分配、分担。合伙协议不得约定将全部利润分配给部分合伙人或者由部分合伙人承担全部亏损。"
+                    },
+                    {
+                        q: "有限责任公司注册资本的缴纳期限是如何规定的?",
+                        a: "全体股东认缴的出资额由股东按照公司章程的规定自公司成立之日起五年内缴足。2024年6月30日前登记设立的公司，有限责任公司剩余认缴出资期限自2027年7月1日起超过5年的，应当在2027年6月30日前将其剩余认缴出资期限调整至5年内并记载于公司章程，股东应当在调整后的认缴出资期限内足额缴纳认缴的出资额；股份有限公司的发起人应当在2027年6月30日前按照其认购的股份全额缴纳股款。公司生产经营涉及国家利益或者重大公共利益，国务院有关主管部门或者省级人民政府提出意见的，国务院市场监督管理部门可以同意其按原出资期限出资。"
+                    },
+                    {
+                        q: "哪些情形下不得担任公司的董事、监事、高级管理人员?",
+                        a: "(一) 无民事行为能力或者限制民事行为能力；\n(二) 因贪污、贿赂、侵占财产、挪用财产或者破坏社会主义市场经济秩序，被判处刑罚，或者因犯罪被剥夺政治权利，执行期满未逾五年，被宣告缓刑的，自缓刑考验期满之日起未逾二年；\n(三) 担任破产清算的公司、企业的董事或者厂长、经理，对该公司、企业的破产负有个人责任的，自该公司、企业破产清算完结之日起未逾三年；\n(四) 担任因违法被吊销营业执照、责令关闭的公司、企业的法定代表人，并负有个人责任的，自该公司、企业被吊销营业执照、责令关闭之日起未逾三年；\n(五) 个人因所负数额较大债务到期未清偿被人民法院列为失信被执行人。"
+                    },
+                    {
+                        q: "人民法院受理破产申请后,对破产申请受理前成立而未履行完毕的合同应如何处理?",
+                        a: "人民法院受理破产申请后，管理人对破产申请受理前成立而债务人和对方当事人均未履行完毕的合同有权决定解除或者继续履行，并通知对方当事人。管理人自破产申请受理之日起二个月内未通知对方当事人，或者自收到对方当事人催告之日起三十日内未答复的，视为解除合同。管理人决定继续履行合同的，对方当事人应当履行；但是，对方当事人有权要求管理人提供担保。管理人不提供担保的，视为解除合同。"
+                    },
+                    {
+                        q: "哪些事项不属于行政复议的范围?",
+                        a: "(一) 国防、外交等国家行为；\n(二) 行政法规、规章或者行政机关制定、发布的具有普遍约束力的决定、命令等规范性文件；\n(三) 行政机关对行政机关工作人员的奖惩、任免等决定；\n(四) 行政机关对民事纠纷作出的调解。"
+                    },
+                    {
+                        q: "《中华人民共和国行政诉讼法》对于经复议的行政案件起诉期限是如何规定的?",
+                        a: "公民、法人或者其他组织不服复议决定的，可以在收到复议决定书之日起十五日内向人民法院提起诉讼。复议机关逾期不作决定的，申请人可以在复议期满之日起十五日内向人民法院提起诉讼。法律另有规定的除外。"
+                    },
+                    {
+                        q: "《中华人民共和国行政处罚法》规定行政机关作出哪些处罚决定时,当事人有权要求听证?",
+                        a: "根据《中华人民共和国行政处罚法》第六十三条规定，行政机关拟作出下列行政处罚决定，应当告知当事人有要求听证的权利，当事人要求听证的，行政机关应当组织听证：\n(1) 较大数额罚款；\n(2) 没收较大数额违法所得、没收较大价值非法财物；\n(3) 降低资质等级、吊销许可证件；\n(4) 责令停产停业、责令关闭、限制从业；\n(5) 其他较重的行政处罚；\n(6) 法律法规、规章规定的其他情形。"
+                    },
+                    {
+                        q: "《中华人民共和国行政复议法》对于适用普通程序审理案件的要求是什么?",
+                        a: "(1) 除当事人原因不能听取意见外，行政复议机构应当通过多种方式听取当事人意见。\n(2) 审理重大、疑难、复杂案件，行政复议机构应当组织听证。\n(3) 县级以上各级人民政府应当建立行政复议委员会，为办理行政复议案件提供咨询意见，并就行政复议工作中的重大事项和共性问题研究提出意见。行政复议委员会的咨询意见是作出行政复议决定的重要参考依据。"
+                    },
+                    {
+                        q: "如何确定行政诉讼中的被告?",
+                        a: "(1) 公民、法人或者其他组织直接向人民法院提起诉讼的，作出行政行为的行政机关是被告。\n(2) 经复议的案件，复议机关决定维持原行政行为的，作出原行政行为的行政机关和复议机关是共同被告；复议机关改变原行政行为的，复议机关是被告。\n(3) 复议机关在法定期限内未作出复议决定，公民、法人或者其他组织起诉原行政行为的，作出原行政行为的行政机关是被告；起诉复议机关不作为的，复议机关是被告。\n(4) 两个以上行政机关作出同一行政行为的，共同作出行政行为的行政机关是共同被告。\n(5) 行政机关委托的组织所作的行政行为，委托的行政机关是被告。\n(6) 行政机关被撤销或者职权变更的，继续行使其职权的行政机关是被告。"
+                    },
+                    {
+                        q: "确定刑事案件管辖地的基本原则是什么?",
+                        a: "(1) 刑事案件由犯罪地的人民法院管辖。如果由被告人居住地的人民法院审判更为适宜的，可以由被告人居住地的人民法院管辖。\n(2) 犯罪地包括犯罪行为地和犯罪结果地。针对或者主要利用计算机网络实施的犯罪，犯罪地包括用于实施犯罪行为的网络服务使用的服务器所在地，网络服务提供者所在地，被侵害的信息网络系统及其管理者所在地，犯罪过程中被告人、被害人使用的信息网络系统所在地，以及被害人被侵害时所在地和被害人财产遭受损失地等。\n(3) 被告人的户籍地为其居住地。经常居住地与户籍地不一致的，经常居住地为其居住地。经常居住地为被告人被追诉前已连续居住一年以上的地方，但住院就医的除外。\n(4) 被告单位登记的住所地为其居住地。主要营业地或者主要办事机构所在地与登记的住所地不一致的，主要营业地或者主要办事机构所在地为其居住地。"
+                    },
+                    {
+                        q: "《中华人民共和国刑法》对于累犯是如何规定的?",
+                        a: "被判处有期徒刑以上刑罚的犯罪分子，刑罚执行完毕或者赦免以后，在五年以内再犯应当判处有期徒刑以上刑罚之罪的，是累犯，应当从重处罚，但是过失犯罪和不满十八周岁的人犯罪的除外。前款规定的期限，对于被假释的犯罪分子，从假释期满之日起计算。危害国家安全犯罪、恐怖活动犯罪、黑社会性质的组织犯罪的犯罪分子，在刑罚执行完毕或者赦免以后，在任何时候再犯上述任一类罪的，都以累犯论处。"
+                    },
+                    {
+                        q: "同一当事人因不同事实分别发生民商事纠纷和涉嫌刑事犯罪,民商事案件与刑事案件应当分别审理的情形有哪些?",
+                        a: "根据最高人民法院《全国法院民商事审判工作会议纪要》的规定，主要有下列情形：\n(1) 主合同的债务人涉嫌刑事犯罪或者刑事裁判认定其构成犯罪，债权人请求担保人承担民事责任的；\n(2) 行为人以法人、非法人组织或者他人名义订立合同的行为涉嫌刑事犯罪或者刑事裁判认定其构成犯罪，合同相对人请求该法人、非法人组织或者他人承担民事责任的；\n(3) 法人或者非法人组织的法定代表人、负责人或者其他工作人员的职务行为涉嫌刑事犯罪或者刑事裁判认定其构成犯罪，受害人请求该法人或者非法人组织承担民事责任的；\n(4) 侵权行为人涉嫌刑事犯罪或者刑事裁判认定其构成犯罪，被保险人、受益人或者其他赔偿权利人请求保险人支付保险金的；\n(5) 受害人请求涉嫌刑事犯罪的行为人之外的其他主体承担民事责任的。"
+                    },
+                    {
+                        q: "《关于依法惩治“台独”顽固分子分裂国家、煽动分裂国家犯罪的意见》规定以将台湾从中国分裂出去为目的,组织、策划、实施哪些行为之一的,以分裂国家罪定罪处罚?",
+                        a: "(1) 发起、建立“台独”分裂组织，策划、制定“台独”分裂行动纲领、计划、方案，指挥“台独”分裂组织成员或者其他人员实施分裂国家、破坏国家统一活动的；\n(2) 通过制定、修改、解释、废止台湾地区有关规定或者“公民投票”等方式，图谋改变台湾是中国一部分的法律地位的；\n(3) 通过推动台湾加入仅限主权国家参加的国际组织或者对外进行官方往来、军事联系等方式，图谋在国际社会制造“两个中国”“一中一台”“台湾独立”的；\n(4) 利用职权在教育、文化、历史、新闻传媒等领域大肆歪曲、篡改台湾是中国一部分的事实，或者打压支持两岸关系和平发展和国家统一的政党、团体、人员的；\n(5) 其他图谋将台湾从中国分裂出去的行为。"
+                    },
+                    {
+                        q: "纳税人进行虚假纳税申报,具有哪些情形之一的,应当认定为“欺骗、隐瞒手段”?",
+                        a: "(1) 伪造、变造、转移、隐匿、擅自销毁账簿、记账凭证或者其他涉税资料的；\n(2) 以签订“阴阳合同”等形式隐匿或者以他人名义分解收入、财产的；\n(3) 虚列支出、虚抵进项税额或者虚报专项附加扣除的；\n(4) 提供虚假材料，骗取税收优惠的；\n(5) 编造虚假计税依据的；\n(6) 为不缴、少缴税款而采取的其他欺骗、隐瞒手段。"
+                    },
+
+                    // 四、律师实务题 (91-110)
+                    {
+                        q: "律师担任民事诉讼案件被告的代理人应重点做好哪几项工作?",
+                        a: "律师担任民事诉讼被告的代理人应重点做好以下工作：\n(1) 分析民事起诉状及对方当事人提交的证据材料；\n(2) 向委托人了解案情；\n(3) 调查收集证据并在举证期限届满前连同证据清单向法院提交；\n(4) 在开庭前撰写民事答辩状并向法院提交；\n(5) 按时参加法院主持的调解，按时参加庭审，并在庭审时陈述答辩意见、举证质证、发表代理意见，并认真做好庭审笔录；\n(6) 撰写书面代理词，当庭提交给法院，或在开庭后及时向法院提交；\n(7) 收到法院送达的判决书、裁定书或调解书后应及时交付委托人；\n(8) 撰写办案小结，并整理卷宗归档。"
+                    },
+                    {
+                        q: "当事人委托律师向法院提起民事诉讼,律师应该向法院提交哪些相关的材料?",
+                        a: "(1) 证明当事人(包括原告、被告和第三人)诉讼主体资格的材料；\n(2) 证明代理人身份、代理权限的材料；\n(3) 起诉状，并按对方当事人的人数提出副本；\n(4) 证据材料：证明属人民法院主管和管辖范围的证据，支持原告诉讼主张的证据，支持原告诉讼主张的法律依据。"
+                    },
+                    {
+                        q: "代理律师申请法院或者仲裁机构对对方当事人采取财产保全措施,获准后还应注意什么情况?",
+                        a: "最高人民法院《关于适用〈中华人民共和国民事诉讼法〉的解释》第四百八十五条第一款规定：“人民法院冻结被执行人的银行存款的期限不得超过一年，查封、扣押动产的期限不得超过两年，查封不动产、冻结其他财产权的期限不得超过三年。”第二款规定：“申请执行人申请延长期限的，人民法院应当在查封、扣押、冻结期限届满前办理续行查封、扣押、冻结手续，续行期限不得超过前款规定的期限。”\n因此，律师代理当事人申请法院或者仲裁机构对对方当事人采取财产保全措施获准后，应当特别注意法院查封、扣押、冻结的期限，并应当在法院查封、扣押、冻结期限届满前，办理续行查封、扣押、冻结手续。"
+                    },
+                    {
+                        q: "2019年8月20日以后,当事人在合同中没有约定逾期付款违约金的利率标准,其利率标准该如何主张、表述?",
+                        a: "自2019年8月20日起，中国人民银行已经授权全国银行间同业拆借中心于每月20日(遇节假日顺延)9时30分公布贷款市场报价利率(LPR)，中国人民银行贷款基准利率这一标准已经取消。因此，自此之后人民法院裁判贷款利息的基本标准应改为全国银行间同业拆借中心公布的贷款市场报价利率。如果当事人在合同上没有约定逾期付款违约金的利率标准，则在诉讼中对主张的利率标准应据此进行表述，不能再表述为“按照同期同类贷款的基准利率计算利息”。\n另外，根据《保障中小企业款项支付条例》第十五条规定，机关、事业单位和大型企业迟延支付中小企业款项的，应当支付逾期利息。双方对逾期利息的利率有约定的，约定利率不得低于合同订立时1年期贷款市场报价利率；未作约定的，按照每日利率万分之五支付逾期利息。"
+                    },
+                    {
+                        q: "侦查阶段,辩护律师为犯罪嫌疑人提供法律咨询,应当告知其基本诉讼权利,主要包括哪些内容?",
+                        a: "(1) 犯罪嫌疑人有不被强迫证实自己有罪的权利；\n(2) 与案件无关的问题有拒绝回答的权利；\n(3) 犯罪嫌疑人有对办案机关侵权行为、程序违法提出申诉和控告的权利；\n(4) 犯罪嫌疑人有申请侦查人员回避的权利；\n(5) 犯罪嫌疑人有知悉鉴定意见和提出异议的权利；\n(6) 犯罪嫌疑人有对刑事案件管辖提出异议的权利；\n(7) 有关刑事和解的权利。"
+                    },
+                    {
+                        q: "侦查阶段,辩护律师为犯罪嫌疑人提供关于侦查机关讯问方面的法律咨询,主要包括哪些内容?",
+                        a: "(1) 犯罪嫌疑人对侦查人员的讯问有如实回答的义务，对与本案无关的问题有拒绝回答的权利；\n(2) 犯罪嫌疑人对侦查人员制作的讯问笔录有核对、补充、更正的权利以及在确认笔录没有错误后应当签名的义务；\n(3) 犯罪嫌疑人有要求自行书写供述和辩解的权利；\n(4) 犯罪嫌疑人有如实供述犯罪事实可以获得从宽处罚的权利。"
+                    },
+                    {
+                        q: "侦查阶段,辩护律师为犯罪嫌疑人提供关于犯罪构成与证据方面的法律咨询,主要包括哪些内容?",
+                        a: "(1) 刑法及相关司法解释关于犯罪嫌疑人所涉嫌罪名的相关规定；\n(2) 刑法及相关的司法解释关于从重、从轻、减轻以及免予处罚的相关规定；\n(3) 关于刑事案件的举证责任的相关规定；\n(4) 关于证据的含义、种类及收集、使用的相关规定；\n(5) 关于非法证据排除的相关规定。"
+                    },
+                    {
+                        q: "律师接受委托办理刑事辩护案件应重点做好哪几项工作?",
+                        a: "律师办理刑事辩护案件应重点做好以下工作：\n(1) 会见犯罪嫌疑人或被告人，并做好会见笔录。辩护人收集的有关犯罪嫌疑人不在犯罪现场、未达到刑事责任年龄、属于依法不负刑事责任的精神病人的证据，应当及时告知公安机关、人民检察院。\n(2) 及时向办理案件的机关提交律师事务所函、委托书等委托手续文书，告知接受委托的情况。如认罪认罚案件应及时与委托人进行沟通，并做好会谈笔录。\n(3) 在案件审查起诉阶段及时领取起诉意见书，在案件审判阶段及时领取起诉书，在审查起诉阶段或审判阶段及时查阅、摘抄、复制案卷材料，必要时调查收集证据材料，或申请人民检察院、人民法院调取证据材料，并向犯罪嫌疑人、被告人核实有关证据。\n(4) 在案件侦查阶段向侦查机关提出意见，在案件审查起诉阶段向人民检察院提出书面辩护意见，在案件审判阶段及时参加庭审、做好庭审笔录、发表辩护意见并提交书面辩护词。\n(5) 收到法院送达的判决书、裁定书应及时告知委托人。\n(6) 撰写办案小结，并整理卷宗归档。"
+                    },
+                    {
+                        q: "律师接受刑事附带民事诉讼委托前,应审查哪些内容?",
+                        a: "(1) 作为提起附带民事诉讼前提的刑事诉讼是否已经提起；\n(2) 附带民事诉讼的被告人是否符合法定条件；\n(3) 被害人的物质损失是否由被告人的犯罪行为所引起；\n(4) 附带民事诉讼提起的时间是否在刑事案件立案之后第一审判决宣告之前；\n(5) 对案件相关的证据材料进行审查。"
+                    },
+                    {
+                        q: "律师接受行政诉讼原告的委托,在代理过程中应当注意哪些事项?",
+                        a: "(1) 审查该案件是否属于行政案件。审查委托人所不服的事项是否属于行政行为；对于法律要求复议前置的，是否经过复议程序；审查对行政行为提起诉讼，是否超过了法定期限。\n(2) 确定案件的被告。所列被告是否作出行政行为的行政机关；如果行政行为是由两个以上行政机关作出，则共同作出行政行为的行政机关是共同被告；经过复议维持的，则行政机关和复议机关为共同被告，复议改变行政行为的，复议机关为被告。\n(3) 确定具体的诉讼请求。对于主要证据不足，适用法律、法规错误，违反法定程序，超越职权、滥用职权的，可请求撤销并要求重新作出具体行政行为；对于被告不履行法定职责的，可以请求履行法定职责。\n(4) 确定管辖法院。行政案件由最初作出具体行政行为的行政机关所在地法院管辖；复议的案件，复议机关改变原具体行政行为的，也可以由复议机关所在地人民法院管辖；对于不动产的诉讼，由不动产所在地人民法院管辖；如有涉及跨区域管辖法院的，建议委托人选择对其有利的人民法院管辖。"
+                    },
+                    {
+                        q: "律师接受行政诉讼被告的委托,在代理过程中应当注意哪些事项?",
+                        a: "(1) 核实被告身份：确认所代理的被告是作出被诉具体行政行为的行政机关，或是符合法律规定的共同被告、复议机关等。\n(2) 获取合法授权：确保已取得被告的合法授权，包括代理范围、权限等，并保留好相关授权文件。\n(3) 遵守应诉时限：确保在法定时限内提交答辩状和相关证据材料，并提交作出具体行政行为的法律依据。\n(4) 准时出庭应诉：按照法院通知的时间、地点准时出庭，通知被告委派负责人一并出庭，并提醒被告携带证据材料的原件。\n(5) 依法行使诉讼权利：在庭审中遵守法庭秩序，服从审判长的指挥，充分陈述事实、理由和依据，运用法律知识进行辩论，维护被告的合法权益。\n(6) 收到法院送达的判决书、裁定书或调解书后应及时交付委托人。\n(7) 撰写办案小结，并整理卷宗归档。"
+                    },
+                    {
+                        q: "在行政诉讼过程中,被告能否自行调查取证?为什么?",
+                        a: "不能，因为行政机关在作出具体行政行为时，应遵循“先取证、后裁决”的规则，只有在收集到确实、充分的证据行政机关才能作出行政决定，行政机关在诉讼程序中调查取证，就违背了“先取证、后裁决”的规则。"
+                    },
+                    {
+                        q: "在行政诉讼中,原告是否可免予举证?为什么?",
+                        a: "不能免除。首先，原告提起行政诉讼时必须提供符合起诉条件的相应材料；其次，在原告诉被告不作为时，必须提供证据证明在行政程序中曾向被告提出申请的证据材料(被告依职权主动履行法定职责的除外)；再次，在行政赔偿诉讼中，对被诉具体行政行为造成损害的事实提供证据。"
+                    },
+                    {
+                        q: "代理律师在接到一审法院判决书或者裁定书后应注意哪些事项?",
+                        a: "(1) 让当事人来所里取判决书或者裁定书，原则上不邮寄。见面即签字，签字即保存。如果当事人无法当面签收，应当使用邮政特快专递邮寄，并在特快专递详情单“内件品名”栏内写明判决书或者裁定书以及案号，且寄出后应当及时查询当事人的收件时间，并将查询情况存档备查。\n(2) 与当事人分析判决认定事实是否清楚、证据是否确实充分、适用法律是否正确、审判程序是否合法，帮助当事人正确决断。\n(3) 告诉当事人收到一审判决书的时间，根据生效法律文书确定的内容及时行使权利、履行义务以及告知当事人上诉权利、上诉期限、上诉法院，如需上诉，是否继续委托及后续服务写上诉状等，做好谈话笔录。"
+                    },
+                    {
+                        q: "依照相关法律的规定,律师参加诉讼活动,享有哪些权利?",
+                        a: "(1) 调查、收集证据的权利。律师有权向有关单位和个人进行调查、取证、咨询、阅卷，有关单位和个人有责任给予支持。\n(2) 查阅、复制本案有关材料和法律文书的权利。\n(3) 出庭执行职务的诉讼权利。\n(4) 解除或辞去委托关系的权利。\n(5) 法律规定的其他诉讼权利。\n另外在参加刑事诉讼活动中，律师还有会见和通信权、申请取保候审权，和对超过法定期限的强制措施要求解除权。"
+                    },
+                    {
+                        q: "律师接受当事人的委托,在执行程序中担任其代理人,应对当事人的委托事项进行审查,需要审查的内容主要有哪些?",
+                        a: "(1) 申请执行的法律文书已经生效；\n(2) 申请执行的法律文书有给付内容，且执行标的和被执行人明确；\n(3) 申请执行人的是生效法律文书的权利人或其继承人、权利承受人；\n(4) 义务人在生效法律文书确定的期限内未履行义务；\n(5) 申请执行人的申请未超过法定期限。"
+                    },
+                    {
+                        q: "律师受托出具的《尽职调查报告》一般应包括哪些内容?",
+                        a: "(1) 范围与目的。明确律师开展尽职调查工作的范围，出具尽职调查报告的目的。\n(2) 律师的工作准则。律师是否根据有关法律法规、规章和规范性政策文件，根据委托人的授权，按照律师行业公认的业务标准、道德规范和勤勉尽责精神，出具工作报告。\n(3) 律师的工作程序。律师在开展尽职调查过程中的主要工作方式、工作时间以及工作流程。\n(4) 相关依据。律师获取的各项书面材料和文件、谈话记录、现场勘查记录等。\n(5) 正文。正文内容应当与律师的工作程序以及律师出具的调查清单所涉及的范围保持一致，如公司概况、经营情况、资产状况、知识产权、诉讼以及处罚情况等，正文部分可以分别对每一个具体问题进行确认、分析与解释。\n(6) 结尾。律师对尽职调查的结果发表结论性意见。"
+                    },
+                    {
+                        q: "律师在审查民事合同过程中应注意哪些事项?",
+                        a: "(1) 确保合同内容的合法性：律师需要审查合同内容是否符合法律法规和行业规范，是否存在无效条款或潜在的法律风险。\n(2) 保护当事人利益：律师需要确保合同条款公平合理，保护当事人的合法权益，避免显失公平的情况出现。\n(3) 严格保密义务：在合同审查过程中，律师需要遵守保密义务，不得泄露当事人的商业秘密和敏感信息。\n(4) 及时跟进后续事宜：在完成合同审查工作后，律师需要跟进后续事宜，如合同履行过程中的法律问题、纠纷解决等，提供必要的法律支持。"
+                    },
+                    {
+                        q: "律师担任法律顾问的服务范围有哪些?",
+                        a: "(1) 咨询；\n(2) 出具法律意见书、律师函；\n(3) 参与重大商务谈判；\n(4) 起草、审查、修改合同和规章制度；\n(5) 代办登记注册等法律事务；\n(6) 法制宣传、教育、培训；\n(7) 提供有关法律信息；\n(8) 经另行委托，代理各类诉讼、仲裁、行政复议案件，参与调解纠纷；\n(9) 法律顾问合同约定的其他服务事项。"
+                    },
+                    {
+                        q: "律师办理群体性案件,应遵守哪些要求?",
+                        a: "(1) 备案制度。律师事务所接受群体性案件委托后，应当及时向所属律师协会备案。\n(2) 集体讨论，加强督导。承接群体性案件，应由律师事务所统一接受委托，指定专人承办，共同研究工作方案。\n(3) 做好咨询接待工作。对来访人员要耐心细致，解答详尽，不宜轻率发表意见。律师事务所决定收案的，应全面做好收案笔录。\n(4) 律师应政府有关部门要求参与上访接待工作，应处理好维护社会稳定与维护群体当事人的合法权益的关系。\n(5) 根据群体性案件的具体情况，律师事务所可以依法与当事人签订委托代理协议，也可以与其授权的代表人、代理人签订委托代理协议。\n(6) 群体性案件结案后，承办律师应及时向律师事务所负责人报告结案情况，具有重大社会影响的还应向所属律师协会报告。\n(7) 律师事务所应当保证办理群体性案件档案的完整、详尽、有序和整齐。"
+                    }
+                ];
+
+                // ==================== 本地存储初始化与保存 ====================
+                const initRecords = () => {
+                    for (let i = 1; i <= 110; i++) {
+                        if (!records[i]) {
+                            records[i] = { latestRating: 'unreviewed', logs: [] };
+                        }
+                    }
+                    try {
+                        const saved = localStorage.getItem(STORAGE_KEY);
+                        if (saved) {
+                            const parsed = JSON.parse(saved);
+                            for (let i = 1; i <= 110; i++) {
+                                if (parsed[i]) {
+                                    records[i].latestRating = parsed[i].latestRating || 'unreviewed';
+                                    records[i].logs = Array.isArray(parsed[i].logs) ? parsed[i].logs : [];
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('读取本地背诵记录失败:', e);
+                    }
+                };
+
+                const persistRecords = () => {
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                    } catch (e) {
+                        alert('保存失败，可能是浏览器存储空间已满或处于无痕模式限制！');
+                    }
+                };
+
+                onMounted(() => {
+                    initRecords();
+                });
+
+                const getQuestionRecord = (id) => {
+                    return records[id] || { latestRating: 'unreviewed', logs: [] };
+                };
+
+                // ==================== 辅助格式化函数 ====================
+                const getOriginalIndex = (id) => {
+                    if (id <= 20) return `【政治素质】${id}`;
+                    if (id <= 70) return `【道德品行】${id - 20}`;
+                    if (id <= 90) return `【专业知识】${id - 70}`;
+                    if (id <= 110) return `【律师实务】${id - 90}`;
+                    return id;
+                };
+
+                const getCategoryId = (id) => {
+                    if (id <= 20) return '1';
+                    if (id <= 70) return '2';
+                    if (id <= 90) return '3';
+                    return '4';
+                };
+
+                const getStatusText = (rating) => {
+                    const map = {
+                        'poor': '🔴 掌握不好',
+                        'medium': '🟡 掌握中等',
+                        'good': '🟢 掌握良好',
+                        'unreviewed': '⚪ 尚未背诵'
+                    };
+                    return map[rating] || '⚪ 尚未背诵';
+                };
+
+                const getRatingLabel = (rating) => {
+                    const map = { 'poor': '🔴 不好', 'medium': '🟡 中等', 'good': '🟢 良好' };
+                    return map[rating] || '未评级';
+                };
+
+                const getStatusBadgeClass = (rating) => {
+                    const map = {
+                        'poor': 'bg-red-100 text-red-700 border border-red-200',
+                        'medium': 'bg-amber-100 text-amber-800 border border-amber-200',
+                        'good': 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+                        'unreviewed': 'bg-gray-100 text-gray-500 border border-gray-200'
+                    };
+                    return map[rating] || map['unreviewed'];
+                };
+
+                const getCardBorderClass = (id) => {
+                    const rating = getQuestionRecord(id).latestRating;
+                    if (rating === 'poor') return 'border-red-300';
+                    if (rating === 'medium') return 'border-amber-300';
+                    if (rating === 'good') return 'border-emerald-300';
+                    return 'border-gray-200';
+                };
+
+                const formatNow = () => {
+                    const d = new Date();
+                    const pad = (n) => String(n).padStart(2, '0');
+                    return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                };
+
+                // ==================== 抽背核心逻辑 ====================
+                const setRange = (min, max) => {
+                    qMin.value = min;
+                    qMax.value = max;
+                };
+
+                const generateQuestions = () => {
+                    const actualMin = Math.max(1, qMin.value || 1);
+                    const actualMax = Math.min(110, qMax.value || 110);
+                    if (actualMin > actualMax) {
+                        alert("起始题号不能大于结束题号！");
+                        return;
+                    }
+
+                    let pool = [];
+                    for (let i = actualMin; i <= actualMax; i++) {
+                        // 1. 检查本轮去重
+                        if (qExcludeHistory.value && qSessionHistory.value.has(i)) continue;
+
+                        // 2. 检查靶向抽题偏好
+                        const rec = getQuestionRecord(i);
+                        if (qFilterMode.value === 'unreviewed' && rec.latestRating !== 'unreviewed') continue;
+                        if (qFilterMode.value === 'weak' && rec.latestRating !== 'poor' && rec.latestRating !== 'medium') continue;
+                        if (qFilterMode.value === 'poor' && rec.latestRating !== 'poor') continue;
+
+                        pool.push({
+                            id: i,
+                            text: questionsData[i - 1].q,
+                            answer: questionsData[i - 1].a
+                        });
+                    }
+
+                    if (pool.length === 0) {
+                        alert("当前筛选条件与范围内没有符合条件的剩余题目！请调整「抽题偏好」或点击「重置本轮已抽池」。");
+                        return;
+                    }
+
+                    const drawCount = Math.min(qCount.value || 1, pool.length);
+                    if (pool.length < qCount.value) {
+                        alert(`提示：符合条件的剩余题目仅有 ${pool.length} 道，已为您全部抽出。`);
+                    }
+
+                    let currentDraw = [];
+                    for (let i = 0; i < drawCount; i++) {
+                        const idx = Math.floor(Math.random() * pool.length);
+                        const picked = pool[idx];
+                        currentDraw.push({
+                            ...picked,
+                            sessionKey: `${picked.id}_${Date.now()}_${i}`,
+                            showAnswer: false,
+                            showHistory: false,
+                            currentRating: '',
+                            currentNote: '',
+                            currentLogId: null,
+                            savedTip: false,
+                            savedTime: ''
+                        });
+                        pool.splice(idx, 1);
+                    }
+
+                    if (qExcludeHistory.value) {
+                        currentDraw.forEach(q => qSessionHistory.value.add(q.id));
+                    }
+
+                    qResults.value = currentDraw;
+                };
+
+                const allAnswersShown = computed(() => {
+                    return qResults.value.length > 0 && qResults.value.every(item => item.showAnswer);
+                });
+
+                const toggleAllAnswers = () => {
+                    const target = !allAnswersShown.value;
+                    qResults.value.forEach(item => item.showAnswer = target);
+                };
+
+                const resetSessionHistory = () => {
+                    qSessionHistory.value.clear();
+                    alert("本轮已抽题目池已重置！");
+                };
+
+                // ==================== 评分与批注保存逻辑 ====================
+                const rateQuestion = (item, rating) => {
+                    item.currentRating = rating;
+                    saveEvaluation(item, false);
+                };
+
+                const saveNoteOnBlur = (item) => {
+                    // 如果已经选了评级或者填了内容，失焦时自动更新保存
+                    if (item.currentRating || item.currentNote.trim()) {
+                        saveEvaluation(item, false);
+                    }
+                };
+
+                const saveEvaluation = (item, manualClick = false) => {
+                    if (!item.currentRating && !item.currentNote.trim()) {
+                        if (manualClick) alert('请先选择自评等级（不好/中等/良好）或输入批注内容！');
+                        return;
+                    }
+
+                    const ratingToSave = item.currentRating || getQuestionRecord(item.id).latestRating === 'unreviewed' ? (item.currentRating || 'medium') : getQuestionRecord(item.id).latestRating;
+                    item.currentRating = ratingToSave;
+
+                    const rec = records[item.id];
+                    const nowStr = formatNow();
+
+                    if (item.currentLogId) {
+                        // 更新本次抽背已生成的记录，防止同一次抽背点多次产生多条垃圾日志
+                        const existingLog = rec.logs.find(l => l.logId === item.currentLogId);
+                        if (existingLog) {
+                            existingLog.rating = ratingToSave;
+                            existingLog.note = item.currentNote.trim();
+                            existingLog.time = nowStr;
+                        } else {
+                            rec.logs.unshift({
+                                logId: item.currentLogId,
+                                time: nowStr,
+                                rating: ratingToSave,
+                                note: item.currentNote.trim()
+                            });
+                        }
+                    } else {
+                        // 首次为本次抽背创建日志
+                        const newLogId = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                        item.currentLogId = newLogId;
+                        rec.logs.unshift({
+                            logId: newLogId,
+                            time: nowStr,
+                            rating: ratingToSave,
+                            note: item.currentNote.trim()
+                        });
+                    }
+
+                    rec.latestRating = ratingToSave;
+                    item.savedTip = true;
+                    item.savedTime = nowStr;
+                    persistRecords();
+                };
+
+                // ==================== 复盘看板统计与筛选 ====================
+                const stats = computed(() => {
+                    let reviewedCount = 0, poorCount = 0, mediumCount = 0, goodCount = 0, totalLogs = 0;
+                    for (let i = 1; i <= 110; i++) {
+                        const r = records[i];
+                        if (!r) continue;
+                        totalLogs += r.logs.length;
+                        if (r.latestRating === 'poor') { poorCount++; reviewedCount++; }
+                        else if (r.latestRating === 'medium') { mediumCount++; reviewedCount++; }
+                        else if (r.latestRating === 'good') { goodCount++; reviewedCount++; }
+                    }
+                    return {
+                        reviewedCount,
+                        poorCount,
+                        mediumCount,
+                        goodCount,
+                        unreviewedCount: 110 - reviewedCount,
+                        totalLogs
+                    };
+                });
+
+                const filteredDashboardQuestions = computed(() => {
+                    let list = [];
+                    const kw = dashSearchKeyword.value.trim().toLowerCase();
+
+                    for (let i = 1; i <= 110; i++) {
+                        const rec = getQuestionRecord(i);
+                        const qObj = questionsData[i - 1];
+
+                        // 1. 评级过滤
+                        if (dashFilterRating.value === 'poor' && rec.latestRating !== 'poor') continue;
+                        if (dashFilterRating.value === 'medium' && rec.latestRating !== 'medium') continue;
+                        if (dashFilterRating.value === 'good' && rec.latestRating !== 'good') continue;
+                        if (dashFilterRating.value === 'unreviewed' && rec.latestRating !== 'unreviewed') continue;
+                        if (dashFilterRating.value === 'reviewed' && rec.latestRating === 'unreviewed') continue;
+                        if (dashFilterRating.value === 'weak' && rec.latestRating !== 'poor' && rec.latestRating !== 'medium') continue;
+
+                        // 2. 章节过滤
+                        if (dashFilterCategory.value !== 'all' && getCategoryId(i) !== dashFilterCategory.value) continue;
+
+                        // 3. 关键词过滤
+                        if (kw) {
+                            const inQ = qObj.q.toLowerCase().includes(kw);
+                            const inA = qObj.a.toLowerCase().includes(kw);
+                            const inNotes = rec.logs.some(l => (l.note || '').toLowerCase().includes(kw));
+                            if (!inQ && !inA && !inNotes) continue;
+                        }
+
+                        const poorCount = rec.logs.filter(l => l.rating === 'poor').length;
+                        list.push({
+                            id: i,
+                            text: qObj.q,
+                            answer: qObj.a,
+                            record: rec,
+                            poorCount
+                        });
+                    }
+
+                    // 排序
+                    if (dashSortBy.value === 'poorCount') {
+                        list.sort((a, b) => b.poorCount - a.poorCount || b.record.logs.length - a.record.logs.length);
+                    } else if (dashSortBy.value === 'reviewCount') {
+                        list.sort((a, b) => b.record.logs.length - a.record.logs.length || a.id - b.id);
+                    } else if (dashSortBy.value === 'recent') {
+                        list.sort((a, b) => {
+                            const tA = a.record.logs[0]?.logId || '';
+                            const tB = b.record.logs[0]?.logId || '';
+                            return tB.localeCompare(tA);
+                        });
+                    } else {
+                        list.sort((a, b) => a.id - b.id);
+                    }
+
+                    return list;
+                });
+
+                const toggleDashExpand = (id) => {
+                    if (dashExpandedIds.value.has(id)) {
+                        dashExpandedIds.value.delete(id);
+                    } else {
+                        dashExpandedIds.value.add(id);
+                    }
+                };
+
+                const deleteLog = (qId, logIndex) => {
+                    if (!confirm('确定要删除这条背诵记录吗？')) return;
+                    const rec = records[qId];
+                    rec.logs.splice(logIndex, 1);
+                    rec.latestRating = rec.logs.length > 0 ? rec.logs[0].rating : 'unreviewed';
+                    persistRecords();
+                };
+
+                // 将看板当前筛出的题目直接送入抽背区
+                const practiceFilteredQuestions = () => {
+                    const pool = filteredDashboardQuestions.value.slice();
+                    if (pool.length === 0) return;
+
+                    const drawCount = Math.min(qCount.value || 3, pool.length);
+                    let currentDraw = [];
+                    for (let i = 0; i < drawCount; i++) {
+                        const idx = Math.floor(Math.random() * pool.length);
+                        const picked = pool[idx];
+                        currentDraw.push({
+                            id: picked.id,
+                            text: picked.text,
+                            answer: picked.answer,
+                            sessionKey: `${picked.id}_${Date.now()}_${i}`,
+                            showAnswer: false,
+                            showHistory: false,
+                            currentRating: '',
+                            currentNote: '',
+                            currentLogId: null,
+                            savedTip: false,
+                            savedTime: ''
+                        });
+                        pool.splice(idx, 1);
+                    }
+                    qResults.value = currentDraw;
+                    mode.value = 'question';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                // ==================== 导入导出备份（精简防截断版） ====================
+                // 通用复制工具函数（兼容手机端 file:// 本地文件环境）
+                const copyToClipboard = (text, onSuccess, onFail) => {
+                    // 优先尝试传统 textarea 同步复制（在手机本地 HTML 中兼容性最好）
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        ta.style.top = '0';
+                        document.body.appendChild(ta);
+                        ta.focus();
+                        ta.select();
+                        const ok = document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        if (ok) {
+                            onSuccess();
+                            return;
+                        }
+                    } catch (e) { }
+
+                    // 其次尝试现代 Clipboard API
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);
+                    } else {
+                        onFail();
+                    }
+                };
+
+                const exportData = () => {
+                    // 仅导出有背诵记录的题目，剔除未背过的空数据，体积缩小 95%
+                    const compactData = {};
+                    for (let i = 1; i <= 110; i++) {
+                        const r = records[i];
+                        if (r && (r.latestRating !== 'unreviewed' || (r.logs && r.logs.length > 0))) {
+                            compactData[i] = r;
+                        }
+                    }
+
+                    if (Object.keys(compactData).length === 0) {
+                        alert('当前还没有任何背诵记录可供导出！');
+                        return;
+                    }
+
+                    const dataStr = JSON.stringify(compactData);
+                    exportJsonStr.value = dataStr;
+                    showImportBox.value = false;
+
+                    copyToClipboard(
+                        dataStr,
+                        () => {
+                            showExportBox.value = false;
+                            alert(`✅ 备份码已成功复制到剪贴板！（共包含 ${Object.keys(compactData).length} 道已背题目记录）`);
+                        },
+                        () => {
+                            // 若手机浏览器彻底禁止自动复制，则展开页面内文本框，绝不使用会截断的 prompt()
+                            showExportBox.value = true;
+                        }
+                    );
+                };
+
+                const importData = () => {
+                    const raw = importJsonStr.value.trim();
+                    if (!raw) {
+                        alert('请先粘贴备份码！');
+                        return;
+                    }
+                    if (raw.includes('...')) {
+                        alert('检测到备份码中包含被系统截断的省略号“...”，请使用新版导出功能重新获取完整备份码！');
+                        return;
+                    }
+                    try {
+                        const parsed = JSON.parse(raw);
+                        // 先重置为默认未背状态，再载入备份中的有效记录
+                        for (let i = 1; i <= 110; i++) {
+                            if (parsed[i]) {
+                                records[i] = {
+                                    latestRating: parsed[i].latestRating || 'unreviewed',
+                                    logs: Array.isArray(parsed[i].logs) ? parsed[i].logs : []
+                                };
+                            } else {
+                                records[i] = { latestRating: 'unreviewed', logs: [] };
+                            }
+                        }
+                        persistRecords();
+                        showImportBox.value = false;
+                        importJsonStr.value = '';
+                        alert('✅ 背诵档案导入成功！');
+                    } catch (e) {
+                        alert('备份码格式有误，无法解析，请确认复制完整！');
+                    }
+                };
+
+                const clearAllRecords = () => {
+                    if (!confirm('⚠️ 警告：确定要清空所有题目的背诵评级和笔记记录吗？此操作不可恢复！')) return;
+                    for (let i = 1; i <= 110; i++) {
+                        records[i] = { latestRating: 'unreviewed', logs: [] };
+                    }
+                    persistRecords();
+                    alert('所有背诵记录已清空。');
+                };
+
+                // ==================== 原有随机数字逻辑 ====================
+                const generateNumbers = () => {
+                    if (numMin.value > numMax.value) {
+                        alert("最小值不能大于最大值！"); return;
+                    }
+                    let pool = [];
+                    for (let i = numMin.value; i <= numMax.value; i++) {
+                        if (!numExcludeHistory.value || !numHistory.value.has(i)) {
+                            pool.push(i);
+                        }
+                    }
+
+                    if (numUnique.value === '唯一' && pool.length < numCount.value) {
+                        alert(`可用数字不足！范围内容量或剩余历史仅有 ${pool.length} 个。请扩大范围或重置历史。`);
+                        return;
+                    }
+
+                    let currentDraw = [];
+                    for (let i = 0; i < numCount.value; i++) {
+                        if (pool.length === 0) break;
+                        const idx = Math.floor(Math.random() * pool.length);
+                        currentDraw.push(pool[idx]);
+                        if (numUnique.value === '唯一') {
+                            pool.splice(idx, 1);
+                        }
+                    }
+
+                    if (numExcludeHistory.value) {
+                        currentDraw.forEach(val => numHistory.value.add(val));
+                    }
+                    numResults.value = currentDraw;
+                };
+
+                const resetNumHistory = () => {
+                    numHistory.value.clear();
+                    numResults.value = [];
+                    alert('随机数历史去重记录已重置！');
+                };
+
+                const copyText = () => {
+                    let text = '';
+                    if (mode.value === 'number') {
+                        if (numResults.value.length === 0) { alert('当前没有可复制的结果！'); return; }
+                        text = numResults.value.join(' ');
+                    } else {
+                        if (qResults.value.length === 0) { alert('当前没有可复制的结果！'); return; }
+                        text = qResults.value.map(q => showQuestionIndex.value ? `${getOriginalIndex(q.id)}. ${q.text}` : q.text).join('\n\n');
+                    }
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('已成功复制到剪贴板！');
+                    });
+                };
+
+                return {
+                    mode,
+                    // 随机数
+                    numCount, numMin, numMax, numUnique, numExcludeHistory, numResults, generateNumbers, resetNumHistory,
+                    // 抽背
+                    qCount, qMin, qMax, qFilterMode, qExcludeHistory, showQuestionIndex, qSessionHistory, qResults,
+                    setRange, generateQuestions, allAnswersShown, toggleAllAnswers, resetSessionHistory,
+                    rateQuestion, saveNoteOnBlur, saveEvaluation,
+                    // 看板与记录
+                    records, stats, dashFilterRating, dashFilterCategory, dashSortBy, dashSearchKeyword,
+                    filteredDashboardQuestions, dashExpandedIds, toggleDashExpand, deleteLog, practiceFilteredQuestions,
+                    showImportBox, importJsonStr, showExportBox, exportJsonStr, exportData, importData, clearAllRecords,
+                    // 工具函数
+                    getQuestionRecord, getOriginalIndex, getStatusText, getRatingLabel, getStatusBadgeClass, getCardBorderClass, copyText
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
