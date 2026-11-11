@@ -464,41 +464,29 @@
                 </div>
             </div>
 
-            <!-- 数据备份与恢复区 -->
+            <!-- 数据备份与恢复区（文件导入导出防截断版） -->
             <div class="mt-8 pt-6 border-t border-gray-200 bg-gray-50 rounded-xl p-4 space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                        <h3 class="font-bold text-sm text-gray-800">📦 本地数据持久化与跨设备同步</h3>
-                        <p class="text-xs text-gray-500">仅导出已背诵的题目数据，体积精简。支持一键复制或在下方文本框手动复制。</p>
+                        <h3 class="font-bold text-sm text-gray-800">📦 本地数据持久化与跨设备文件同步</h3>
+                        <p class="text-xs text-gray-500">支持将背诵档案导出为本地文件（通过微信文件传输助手即可跨端发送），彻底解决长文本截断问题。</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <button @click="exportData"
-                            class="bg-white border border-gray-300 hover:border-[#439b7d] text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                            📤 导出/复制备份码
+                        <button @click="exportDataFile"
+                            class="theme-bg theme-bg-hover text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+                            💾 导出备份文件 (.txt)
                         </button>
-                        <button @click="showImportBox = !showImportBox; showExportBox = false"
-                            class="bg-white border border-gray-300 hover:border-[#439b7d] text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                            📥 导入备份码
-                        </button>
+                        <label
+                            class="bg-white border border-gray-300 hover:border-[#439b7d] text-gray-700 px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition inline-flex items-center">
+                            📂 选择备份文件导入
+                            <input type="file" accept=".txt,.json,text/plain,application/json" @change="importDataFile"
+                                class="hidden">
+                        </label>
                         <button @click="clearAllRecords"
                             class="bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                             🗑️ 清空所有记录
                         </button>
                     </div>
-                </div>
-                <!-- 页面内导出框（防止手机端弹窗截断） -->
-                <div v-if="showExportBox" class="space-y-2 pt-2">
-                    <div class="text-xs text-emerald-700 font-medium">👇 若未自动复制，请长按全选下方文本框内容进行复制：</div>
-                    <textarea ref="exportTextarea" v-model="exportJsonStr" readonly rows="3"
-                        @click="$event.target.select()"
-                        class="w-full border border-emerald-400 rounded-lg p-2 text-xs font-mono bg-white"></textarea>
-                </div>
-                <!-- 页面内导入框 -->
-                <div v-if="showImportBox" class="space-y-2 pt-2">
-                    <textarea v-model="importJsonStr" rows="3" placeholder="在此粘贴复制的备份码 JSON 字符串..."
-                        class="w-full border border-gray-300 rounded-lg p-2 text-xs font-mono bg-white"></textarea>
-                    <button @click="importData"
-                        class="theme-bg text-white px-4 py-1.5 rounded-lg text-xs font-bold">确认导入并合并/覆盖</button>
                 </div>
             </div>
         </div>
@@ -609,10 +597,6 @@
                 const dashSortBy = ref('id');
                 const dashSearchKeyword = ref('');
                 const dashExpandedIds = ref(new Set());
-                const showImportBox = ref(false);
-                const importJsonStr = ref('');
-                const showExportBox = ref(false);
-                const exportJsonStr = ref('');
 
                 // ==================== 110道完整题库与标准答案 ====================
                 const questionsData = [
@@ -655,11 +639,11 @@
                     },
                     {
                         q: "请简述党的二十届三中全会提出的进一步全面深化改革的总目标是什么?",
-                        a: "进一步全面深化改革的总目标是继续完善和发展中国特色社会主义制度，推进国家治理体系和治理能力现代化。到二〇三五年，全面建成高水平社会主义市场经济体制，中国特色社会主义制度更加完善，基本实现国家治理体系和治理能力现代化，基本实现社会主义现代化，为到本世纪中叶全面建成社会主义现代化强国奠定坚实基础。要聚焦构建高水平社会主义市场经济体制，聚焦发展全过程人民民主，聚焦建设社会主义文化强国，聚焦提高人民生活品质，聚焦建设美丽中国，聚焦建设更高水平平安中国，聚焦提高党的领导水平和长期执政能力，继续把改革推向前进。到二〇二九年中华人民共和国成立八十周年时，完成本决定提出的改革任务。"
+                        a: "进一步全面深化改革的总目标是继续完善和发展中国特色社会主义制度，推进国家治理体系和治理能力现代化。\n到二〇三五年，全面建成高水平社会主义市场经济体制，中国特色社会主义制度更加完善，基本实现国家治理体系和治理能力现代化，基本实现社会主义现代化，为到本世纪中叶全面建成社会主义现代化强国奠定坚实基础。\n要聚焦构建高水平社会主义市场经济体制，\n聚焦发展全过程人民民主，\n聚焦建设社会主义文化强国，\n聚焦提高人民生活品质，\n聚焦建设美丽中国，\n聚焦建设更高水平平安中国，\n聚焦提高党的领导水平和长期执政能力，\n继续把改革推向前进。\n到二〇二九年中华人民共和国成立八十周年时，完成本决定提出的改革任务。"
                     },
                     {
                         q: "党的二十届三中全会关于完善中国特色社会主义法治体系的主要内容是什么?",
-                        a: "法治是中国式现代化的重要保障。必须全面贯彻实施宪法，维护宪法权威，协同推进立法、执法、司法、守法各环节改革，健全法律面前人人平等保障机制，弘扬社会主义法治精神，维护社会公平正义，全面推进国家各方面工作法治化。要深化立法领域改革，深入推进依法行政，健全公正执法司法体制机制，完善推进法治社会建设机制，加强涉外法治建设。"
+                        a: "法治是中国式现代化的重要保障。\n必须全面贯彻实施宪法，维护宪法权威，协同推进立法、执法、司法、守法各环节改革，健全法律面前人人平等保障机制，弘扬社会主义法治精神，维护社会公平正义，全面推进国家各方面工作法治化。\n要深化立法领域改革，深入推进依法行政，健全公正执法司法体制机制，完善推进法治社会建设机制，加强涉外法治建设。"
                     },
                     {
                         q: "请简述党的二十届三中全会关于加强涉外法治建设的主要内容是什么?",
@@ -829,30 +813,30 @@
                     },
                     {
                         q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》第二十三条规定,律师利用提供法律服务的便利,损害委托人利益,应当给予训诫、警告直至取消会员资格的纪律处分。请简述具体情形有哪些?",
-                        a: "(1) 利用提供法律服务的便利牟取当事人利益；接受委托后，故意损害委托人利益的；\n(2) 接受对方当事人的财物及其他利益，与对方当事人、第三人恶意串通，向对方当事人、第三人提供不利于委托人的信息、证据材料，侵害委托人的权益；\n(3) 为阻挠当事人解除委托关系，威胁、恐吓当事人或者扣留当事人提供的材料的。"
+                        a: "【坏、当内鬼、威胁客户】\n(1) 利用提供法律服务的便利牟取当事人利益；接受委托后，故意损害委托人利益的；\n(2) 接受对方当事人的财物及其他利益，与对方当事人、第三人恶意串通，向对方当事人、第三人提供不利于委托人的信息、证据材料，侵害委托人的权益；\n(3) 为阻挠当事人解除委托关系，威胁、恐吓当事人或者扣留当事人提供的材料的。"
                     },
                     {
                         q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》规定律师违规收案、收费应给予纪律处分的情形有哪些?",
                         a: "(1) 不按规定与委托人签订书面委托合同的；\n(2) 不按规定统一接受委托、签订书面委托合同和收费合同，统一收取委托人支付的各项费用的；\n(3) 不按规定统一保管、使用律师服务专用文书、财务票据、业务档案的；\n(4) 私自接受委托，私自向委托人收取费用，或者收取规定、约定之外的费用或者财物的；违反收费协议约定，擅自提高收费的；\n(5) 执业期间以非律师身份从事有偿法律服务的；\n(6) 不向委托人开具律师服务收费合法票据，或者不向委托人提交办案费用开支有效凭证的。"
                     },
                     {
-                        q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》第二十九条规定,律师以不正当手段争揽业务的,应给予训诫、警告直至取消会员资格的纪律处分。请简述可以被认定为以不正当手段争揽业务的行为的具体情形。",
-                        a: "(1) 为争揽业务，向委托人作虚假承诺的；\n(2) 向当事人明示或者暗示与办案机关、政府部门及其工作人员有特殊关系的；\n(3) 利用媒体、广告或者其他方式进行不真实或者不适当宣传的；\n(4) 以支付介绍费等不正当手段争揽业务的；\n(5) 在事前和事后为承办案件的法官、检察官、仲裁员牟取物质的或非物质的利益，为了争揽案件事前和事后给予有关人员物质的或非物质利益的；\n(6) 在司法机关、监管场所周边违规设立办公场所、散发广告、举牌等不正当手段争揽业务的。"
+                        q: "中华全国律师协会《律师协会会员违规行为处分规则(试行)》第二十九条规定,律师以不正当手段争揽业务的,应给予训诫、警告直至取消会员资格的纪律处分。请简述可以被认定为以不正当手段争揽业务的行为的具体情形。(6条)",
+                        a: "野路子拉案源（骗客户 ➔ 吹关系 ➔ 假广告 ➔ 给回扣 ➔ 喂法官 ➔ 法院周边蹲点）\n(1) 为争揽业务，向委托人作虚假承诺的；\n(2) 向当事人明示或者暗示与办案机关、政府部门及其工作人员有特殊关系的；\n(3) 利用媒体、广告或者其他方式进行不真实或者不适当宣传的；\n(4) 以支付介绍费等不正当手段争揽业务的；\n(5) 在事前和事后为承办案件的法官、检察官、仲裁员牟取物质的或非物质的利益，为了争揽案件事前和事后给予有关人员物质的或非物质利益的；\n(6) 在司法机关、监管场所周边违规设立办公场所、散发广告、举牌等不正当手段争揽业务的。"
                     },
                     {
                         q: "中华全国律师协会《律师业务推广行为规则(试行)》第五条规定,律师、律师事务所不得发布律师服务广告的情形有哪些?",
-                        a: "(1) 未参加年度考核或者未通过年度考核的；\n(2) 处于中止会员权利、停止执业或者停业整顿处罚期间，以及前述期间届满后未满一年的；\n(3) 受到通报批评、公开谴责未满一年的；\n(4) 其他不得发布广告的情形。"
+                        a: "没年检、受重罚、受轻罚、兜底\n(1) 未参加年度考核或者未通过年度考核的；\n(2) 处于中止会员权利、停止执业或者停业整顿处罚期间，以及前述期间届满后未满一年的；\n(3) 受到通报批评、公开谴责未满一年的；\n(4) 其他不得发布广告的情形。"
                     },
                     {
                         q: "中华全国律师协会《律师业务推广行为规则(试行)》第十条规定,律师、律师事务所进行业务推广时,不得有哪些行为?(简述1-6项)",
-                        a: "(1) 虚假、误导性或者夸大性宣传；\n(2) 与登记注册信息不一致；\n(3) 明示或者暗示与司法机关、政府机关、社会团体、中介机构及其工作人员有特殊关系；\n(4) 贬低其他律师事务所或者律师的；或与其他律师事务所、其他律师之间进行比较宣传；\n(5) 承诺办案结果；\n(6) 宣示胜诉率、赔偿额、标的额等可能使公众对律师、律师事务所产生不合理期望。"
+                        a: "（民事、刑事、接对方的其他案子、六个月内、老客户、转所）\n(1) 虚假、误导性或者夸大性宣传；\n(2) 与登记注册信息不一致；\n(3) 明示或者暗示与司法机关、政府机关、社会团体、中介机构及其工作人员有特殊关系；\n(4) 贬低其他律师事务所或者律师的；或与其他律师事务所、其他律师之间进行比较宣传；\n(5) 承诺办案结果；\n(6) 宣示胜诉率、赔偿额、标的额等可能使公众对律师、律师事务所产生不合理期望。"
                     },
                     {
                         q: "中华全国律师协会《律师业务推广行为规则(试行)》第十条规定,律师、律师事务所进行业务推广时,不得有哪些行为?(简述7-13项)",
                         a: "搞价格战，曝隐私，形象低俗，乱带高帽\n(7) 明示或者暗示提供回扣或者其他利益；\n(8) 不收费或者减低收费(法律援助案件除外)；\n(9) 未经客户许可发布的客户信息；\n(10) 与律师职业不相称的文字、图案、图片和视听资料；\n(11) 在非履行律师协会任职职责的活动中使用律师协会任职的职务；\n(12) 使用中国、中华、全国、外国国家名称等字样，或者未经同意使用国际组织、国家机关、政府组织、行业协会名称；\n(13) 法律法规、规章、行业规范规定的其他禁止性内容。"
                     },
                     {
-                        q: "中华全国律师协会《律师执业行为规范》第十四条规定律师不得有哪些行为?",
+                        q: "中华全国律师协会《律师执业行为规范》第十四条规定律师不得有哪些行为?（5条）",
                         a: "(1) 产生不良社会影响，有损律师行业声誉的行为；\n(2) 妨碍国家司法、行政机关依法行使职权的行为；\n(3) 参加法律所禁止的机构、组织或者社会团体；\n(4) 其他违反法律法规、律师协会行业规范及职业道德的行为；\n(5) 其他违反社会公德，严重损害律师职业形象的行为。"
                     },
                     {
@@ -1425,10 +1409,8 @@
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
-                // ==================== 导入导出备份（精简防截断版） ====================
-                // 通用复制工具函数（兼容手机端 file:// 本地文件环境）
+                // ==================== 文件级导入导出备份（零截断） ====================
                 const copyToClipboard = (text, onSuccess, onFail) => {
-                    // 优先尝试传统 textarea 同步复制（在手机本地 HTML 中兼容性最好）
                     try {
                         const ta = document.createElement('textarea');
                         ta.value = text;
@@ -1446,7 +1428,6 @@
                         }
                     } catch (e) { }
 
-                    // 其次尝试现代 Clipboard API
                     if (navigator.clipboard && navigator.clipboard.writeText) {
                         navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);
                     } else {
@@ -1454,8 +1435,8 @@
                     }
                 };
 
-                const exportData = () => {
-                    // 仅导出有背诵记录的题目，剔除未背过的空数据，体积缩小 95%
+                const exportDataFile = () => {
+                    // 仅导出有背诵记录的题目，保持文件整洁
                     const compactData = {};
                     for (let i = 1; i <= 110; i++) {
                         const r = records[i];
@@ -1469,53 +1450,62 @@
                         return;
                     }
 
-                    const dataStr = JSON.stringify(compactData);
-                    exportJsonStr.value = dataStr;
-                    showImportBox.value = false;
+                    // 格式化为带缩进的 JSON 文本
+                    const dataStr = JSON.stringify(compactData, null, 2);
+                    const blob = new Blob([dataStr], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
 
-                    copyToClipboard(
-                        dataStr,
-                        () => {
-                            showExportBox.value = false;
-                            alert(`✅ 备份码已成功复制到剪贴板！（共包含 ${Object.keys(compactData).length} 道已背题目记录）`);
-                        },
-                        () => {
-                            // 若手机浏览器彻底禁止自动复制，则展开页面内文本框，绝不使用会截断的 prompt()
-                            showExportBox.value = true;
-                        }
-                    );
+                    // 生成带时间戳的文件名，后缀用 .txt 保证手机微信与文件管理器 100% 兼容
+                    const d = new Date();
+                    const timeTag = `${d.getMonth() + 1}月${d.getDate()}日_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `律协抽背备份_${timeTag}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                 };
 
-                const importData = () => {
-                    const raw = importJsonStr.value.trim();
-                    if (!raw) {
-                        alert('请先粘贴备份码！');
-                        return;
-                    }
-                    if (raw.includes('...')) {
-                        alert('检测到备份码中包含被系统截断的省略号“...”，请使用新版导出功能重新获取完整备份码！');
-                        return;
-                    }
-                    try {
-                        const parsed = JSON.parse(raw);
-                        // 先重置为默认未背状态，再载入备份中的有效记录
-                        for (let i = 1; i <= 110; i++) {
-                            if (parsed[i]) {
-                                records[i] = {
-                                    latestRating: parsed[i].latestRating || 'unreviewed',
-                                    logs: Array.isArray(parsed[i].logs) ? parsed[i].logs : []
-                                };
-                            } else {
-                                records[i] = { latestRating: 'unreviewed', logs: [] };
+                const importDataFile = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result.trim();
+                            const parsed = JSON.parse(content);
+
+                            let importedCount = 0;
+                            for (let i = 1; i <= 110; i++) {
+                                if (parsed[i]) {
+                                    records[i] = {
+                                        latestRating: parsed[i].latestRating || 'unreviewed',
+                                        logs: Array.isArray(parsed[i].logs) ? parsed[i].logs : []
+                                    };
+                                    if (records[i].latestRating !== 'unreviewed' || records[i].logs.length > 0) {
+                                        importedCount++;
+                                    }
+                                } else {
+                                    records[i] = { latestRating: 'unreviewed', logs: [] };
+                                }
                             }
+                            persistRecords();
+                            alert(`✅ 备份文件解析成功！已恢复 ${importedCount} 道题目的背诵档案。`);
+                        } catch (err) {
+                            alert('❌ 文件格式无法解析，请确认选择的是本系统导出的备份文件！');
+                        } finally {
+                            // 清空 input 的值，确保下次选择同名文件也能触发 change 事件
+                            event.target.value = '';
                         }
-                        persistRecords();
-                        showImportBox.value = false;
-                        importJsonStr.value = '';
-                        alert('✅ 背诵档案导入成功！');
-                    } catch (e) {
-                        alert('备份码格式有误，无法解析，请确认复制完整！');
-                    }
+                    };
+                    reader.onerror = () => {
+                        alert('❌ 读取文件失败，请重试！');
+                        event.target.value = '';
+                    };
+                    reader.readAsText(file, 'UTF-8');
                 };
 
                 const clearAllRecords = () => {
@@ -1575,9 +1565,11 @@
                         if (qResults.value.length === 0) { alert('当前没有可复制的结果！'); return; }
                         text = qResults.value.map(q => showQuestionIndex.value ? `${getOriginalIndex(q.id)}. ${q.text}` : q.text).join('\n\n');
                     }
-                    navigator.clipboard.writeText(text).then(() => {
-                        alert('已成功复制到剪贴板！');
-                    });
+                    copyToClipboard(
+                        text,
+                        () => alert('已成功复制到剪贴板！'),
+                        () => alert('复制失败，请手动长按选择复制。')
+                    );
                 };
 
                 return {
@@ -1591,7 +1583,7 @@
                     // 看板与记录
                     records, stats, dashFilterRating, dashFilterCategory, dashSortBy, dashSearchKeyword,
                     filteredDashboardQuestions, dashExpandedIds, toggleDashExpand, deleteLog, practiceFilteredQuestions,
-                    showImportBox, importJsonStr, showExportBox, exportJsonStr, exportData, importData, clearAllRecords,
+                    exportDataFile, importDataFile, clearAllRecords,
                     // 工具函数
                     getQuestionRecord, getOriginalIndex, getStatusText, getRatingLabel, getStatusBadgeClass, getCardBorderClass, copyText
                 };
